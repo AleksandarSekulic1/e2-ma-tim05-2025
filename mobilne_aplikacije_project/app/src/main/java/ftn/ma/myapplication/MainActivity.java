@@ -1,5 +1,6 @@
 package ftn.ma.myapplication;
-
+import android.content.Intent; // Dodajte ovaj import na vrh fajla
+import android.widget.Button;   // I ovaj takođe
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -7,6 +8,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,5 +23,11 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        Button openCategoriesButton = findViewById(R.id.btnOpenCategories);
+        openCategoriesButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, CategoriesActivity.class);
+            startActivity(intent);
+        });
+
     }
 }

@@ -9,6 +9,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
 import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 
@@ -33,6 +34,12 @@ public class MainActivity extends AppCompatActivity {
         Button openTasksButton = findViewById(R.id.btnOpenTasks);
         openTasksButton.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, TasksActivity.class);
+            startActivity(intent);
+        });
+
+        Button openTasksButtonCalendar = findViewById(R.id.btnOpenTasksCalendar);
+        openTasksButtonCalendar.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, TasksCalendarActivity.class); // Ispravljeno
             startActivity(intent);
         });
     }

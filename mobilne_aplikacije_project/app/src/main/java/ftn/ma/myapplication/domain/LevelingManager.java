@@ -2,34 +2,67 @@ package ftn.ma.myapplication.domain;
 
 public class LevelingManager {
 
-    // Metoda koja računa koliko je XP poena potrebno za sledeći nivo
-    // na osnovu formula iz specifikacije
-    public static int calculateXpForNextLevel(int currentLevel) {
-        if (currentLevel < 1) {
-            // Početni uslov, pre nivoa 1
+    /**
+     * Metoda koja računa ukupan broj XP poena potreban da bi se dostigao određeni nivo.
+     * Npr. za Nivo 1 treba 200 XP, za Nivo 2 treba 500 XP ukupno, itd.
+     * @param level Nivo za koji tražimo prag
+     * @return Ukupan broj XP poena potreban za taj nivo
+     */
+    public static int getXpNeededForLevel(int level) {
+        if (level <= 1) {
             return 200;
         }
 
-        // Prvo izračunavamo XP potreban za TRENUTNI nivo
-        int xpForCurrentLevel = 200;
-        // Počinjemo od nivoa 2 jer je za nivo 1 fiksno 200
-        for (int i = 2; i <= currentLevel; i++) {
-            // Formula: XP prethodnog * 2 + XP prethodnog / 2
-            int previousXp = xpForCurrentLevel;
-            xpForCurrentLevel = previousXp * 2 + previousXp / 2;
+        // Počinjemo od praga za Nivo 1
+        int xpThreshold = 200;
+        // Računamo pragove za svaki nivo do onog koji tražimo
+        for (int i = 2; i <= level; i++) {
+            int previousThreshold = xpThreshold;
+            // Formula: Prag prethodnog * 2 + Prag prethodnog / 2
+            xpThreshold = previousThreshold * 2 + previousThreshold / 2;
             // Zaokruživanje na prvu narednu stotinu
-            if (xpForCurrentLevel % 100 != 0) {
-                xpForCurrentLevel = ((xpForCurrentLevel / 100) + 1) * 100;
+            if (xpThreshold % 100 != 0) {
+                xpThreshold = ((xpThreshold / 100) + 1) * 100;
             }
         }
+        return xpThreshold;
+    }
 
-        // Sada kada znamo XP za trenutni nivo, računamo za SLEDEĆI
-        int xpForNextLevel = xpForCurrentLevel * 2 + xpForCurrentLevel / 2;
-        // I opet zaokružujemo
-        if (xpForNextLevel % 100 != 0) {
-            xpForNextLevel = ((xpForNextLevel / 100) + 1) * 100;
+
+    public static int calculateTotalPpForLevel(int level) {
+        if (level <= 1) {
+            return 40;
         }
+        double currentPp = 40.0;
+        for (int i = 2; i <= level; i++) {
+            currentPp = currentPp + (0.75 * currentPp);
+        }
+        return (int) Math.round(currentPp);
+    }
 
-        return xpForNextLevel;
+    public static int calculateBossHpForLevel(int level) {
+        if (level <= 1) {
+            return 200;
+        }
+        int currentHp = 200;
+        for (int i = 2; i <= level; i++) {
+            currentHp = currentHp * 2 + currentHp / 2;
+        }
+        return currentHp;
+    }
+
+    // --- NOVA METODA za računanje nagrade u novčićima ---
+    // Specifikacija: 200 za prvog bosa, +20% za svakog sledećeg
+    public static int calculateCoinReward(int level) {
+        if (level <= 1) {
+            return 200;
+        }
+        double coinReward = 200.0;
+        // Počinjemo od nivoa 2
+        for (int i = 2; i <= level; i++) {
+            // Povećavamo za 20%
+            coinReward *= 1.20;
+        }
+        return (int) Math.round(coinReward);
     }
 }

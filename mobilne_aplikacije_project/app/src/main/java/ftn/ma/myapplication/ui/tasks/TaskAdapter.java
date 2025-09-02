@@ -22,6 +22,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     public interface OnTaskListener {
         void onTaskLongClick(Task task);
+        void onTaskClick(Task task);
+        void onTaskCheckedChanged(Task task, boolean isChecked);
     }
 
     // Konstruktor sada prima i DAO i ExecutorService
@@ -68,6 +70,12 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             return false;
         });
 
+        holder.itemView.setOnClickListener(view -> {
+            if (onTaskListener != null) {
+                onTaskListener.onTaskClick(currentTask);
+            }
+        });
+
         if (currentTask.getCategory() != null) {
             holder.taskCategoryTextView.setText(currentTask.getCategory().getName());
             holder.categoryColorView.setBackgroundColor(currentTask.getCategory().getColor());
@@ -81,10 +89,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
         // Postavljamo listener koji će sačuvati promenu u bazi
         holder.taskDoneCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            currentTask.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
-            executorService.execute(() -> {
-                taskDao.update(currentTask);
-            });
+            // Više ne ažuriramo bazu odavde, samo obaveštavamo aktivnost
+            if (onTaskListener != null) {
+                onTaskListener.onTaskCheckedChanged(currentTask, isChecked);
+            }
         });
     }
 

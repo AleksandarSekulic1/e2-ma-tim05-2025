@@ -11,7 +11,7 @@ import ftn.ma.myapplication.data.model.Task; // Dodajte import za Task
 
 // 1. Definišemo da je ovo klasa baze, navodimo sve entitete i verziju
 @TypeConverters({Converters.class})
-@Database(entities = {Category.class, Task.class}, version = 2)
+@Database(entities = {Category.class, Task.class}, version = 3)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 2. Apstraktna metoda koja vraća naš DAO (daljinski upravljač)

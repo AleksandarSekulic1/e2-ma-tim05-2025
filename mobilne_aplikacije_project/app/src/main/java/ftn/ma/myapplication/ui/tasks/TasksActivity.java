@@ -1,28 +1,29 @@
 package ftn.ma.myapplication.ui.tasks;
 
-import android.graphics.Color;
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
-import android.content.Intent;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import java.util.concurrent.ExecutorService; // NOVI IMPORT
-import java.util.concurrent.Executors;     // NOVI IMPORT
-import ftn.ma.myapplication.data.local.AppDatabase; // NOVI IMPORT
-import ftn.ma.myapplication.data.local.TaskDao;     // NOVI IMPORT
-import ftn.ma.myapplication.data.local.CategoryDao; // NOVI IMPORT
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import android.app.Activity; // Dodajte ovaj import
-import androidx.activity.result.ActivityResultLauncher; // Dodajte i ovaj
-import androidx.activity.result.contract.ActivityResultContracts; // I ovaj
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import ftn.ma.myapplication.R;
+import ftn.ma.myapplication.data.local.AppDatabase;
+import ftn.ma.myapplication.data.local.CategoryDao;
+import ftn.ma.myapplication.data.local.TaskDao;
+import ftn.ma.myapplication.domain.LevelingManager;
 import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
-import androidx.appcompat.app.AlertDialog;
+import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
 
@@ -30,10 +31,8 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     private FloatingActionButton fab;
     private TaskAdapter adapter;
     private List<Task> taskList;
-    // Definišemo request code (jedinstveni broj za naš zahtev)
-    private static final int ADD_TASK_REQUEST_CODE = 1;
     private TaskDao taskDao;
-    private CategoryDao categoryDao; // Trebaće nam za dohvatanje imena kategorija
+    private CategoryDao categoryDao;
     private ExecutorService executorService;
 
     @Override
@@ -41,10 +40,9 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tasks);
 
-        // NOVO: Inicijalizacija baze
         AppDatabase database = AppDatabase.getDatabase(getApplicationContext());
         taskDao = database.taskDao();
-        categoryDao = database.categoryDao(); // Inicijalizujemo i njega
+        categoryDao = database.categoryDao();
         executorService = Executors.newSingleThreadExecutor();
 
         recyclerView = findViewById(R.id.recyclerViewTasks);
@@ -52,9 +50,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
         setupRecyclerView();
 
-        // Više ne pozivamo loadTasks() ovde, već u onResume()
-
-        // Pokrećemo CreateEditTaskActivity kao i do sada, bez očekivanja rezultata
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
             startActivity(intent);
@@ -64,27 +59,19 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     @Override
     protected void onResume() {
         super.onResume();
-        // Uvek ponovo učitamo zadatke da bismo videli promene
         loadTasks();
     }
 
     private void setupRecyclerView() {
-        // Postavljamo praznu listu i adapter
         taskList = new ArrayList<>();
-        // ISPRAVNA LINIJA
-        adapter = new TaskAdapter(taskList, taskDao, executorService,this);
+        adapter = new TaskAdapter(taskList, taskDao, executorService, this);
         recyclerView.setAdapter(adapter);
     }
 
-    // MODIFIKOVANA METODA za učitavanje iz baze
     private void loadTasks() {
         executorService.execute(() -> {
-            // Učitavamo sve zadatke iz baze
             List<Task> tasksFromDb = taskDao.getAllTasks();
-            // Učitavamo sve kategorije iz baze da bismo mogli da spojimo imena
             List<Category> allCategories = categoryDao.getAllCategories();
-
-            // Spajamo zadatke sa kategorijama
             for (Task task : tasksFromDb) {
                 for (Category category : allCategories) {
                     if (task.getCategoryId() == category.getId()) {
@@ -93,7 +80,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                     }
                 }
             }
-
             runOnUiThread(() -> {
                 taskList.clear();
                 taskList.addAll(tasksFromDb);
@@ -104,26 +90,81 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
     @Override
     public void onTaskLongClick(Task task) {
-        // Prikazujemo dijalog za potvrdu brisanja
         new AlertDialog.Builder(this)
                 .setTitle("Obriši zadatak")
                 .setMessage("Da li ste sigurni da želite da obrišete zadatak '" + task.getName() + "'?")
-                .setPositiveButton("Obriši", (dialog, which) -> {
-                    // Ako korisnik potvrdi, pozivamo metodu za brisanje
-                    deleteTask(task);
-                })
-                .setNegativeButton("Otkaži", null) // "Otkaži" ne radi ništa
+                .setPositiveButton("Obriši", (dialog, which) -> deleteTask(task))
+                .setNegativeButton("Otkaži", null)
                 .show();
     }
 
-    // --- NOVA METODA za brisanje iz baze ---
     private void deleteTask(Task task) {
         executorService.execute(() -> {
-            // Komanda za brisanje se izvršava u pozadini
             taskDao.delete(task);
-            // Nakon brisanja, ponovo učitavamo sve zadatke da osvežimo listu
             loadTasks();
         });
     }
 
+    @Override
+    public void onTaskClick(Task task) {
+        Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
+        intent.putExtra("EDIT_TASK", task);
+        startActivity(intent);
+    }
+
+    // --- ISPRAVLJENA LOGIKA ---
+    @Override
+    public void onTaskCheckedChanged(Task task, boolean isChecked) {
+        // Dodeljujemo poene SAMO ako je zadatak štikliran I AKO POENI VEĆ NISU DODELJENI
+        if (isChecked && !task.isXpAwarded()) {
+            task.setXpAwarded(true); // Označavamo da su poeni dodeljeni
+            awardXpForTask(task);
+        }
+
+        // Ažuriramo status zadatka bez obzira na poene
+        task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
+
+        // Čuvamo promenu u bazi (i statusa i xpAwarded zastavice)
+        executorService.execute(() -> taskDao.update(task));
+    }
+
+    private void awardXpForTask(Task task) {
+        int xpForDifficulty = 0;
+        switch (task.getDifficulty()) {
+            case VEOMA_LAK: xpForDifficulty = 1; break;
+            case LAK: xpForDifficulty = 3; break;
+            case TEZAK: xpForDifficulty = 7; break;
+            case EKSTREMNO_TEZAK: xpForDifficulty = 20; break;
+        }
+
+        int xpForImportance = 0;
+        switch (task.getImportance()) {
+            case NORMALAN: xpForImportance = 1; break;
+            case VAZAN: xpForImportance = 3; break;
+            case EKSTREMNO_VAZAN: xpForImportance = 10; break;
+            case SPECIJALAN: xpForImportance = 100; break;
+        }
+
+        int totalXp = xpForDifficulty + xpForImportance;
+
+        int currentLevel = SharedPreferencesManager.getUserLevel(this);
+        int currentXp = SharedPreferencesManager.getUserXp(this);
+        int newTotalXp = currentXp + totalXp;
+
+        Toast.makeText(this, "Osvojili ste " + totalXp + " XP! (Ukupno: " + newTotalXp + ")", Toast.LENGTH_SHORT).show();
+        SharedPreferencesManager.saveUserXp(this, newTotalXp);
+
+        int xpNeededForNextLevel = LevelingManager.calculateXpForNextLevel(currentLevel);
+        boolean leveledUp = false;
+        while (newTotalXp >= xpNeededForNextLevel) {
+            currentLevel++;
+            leveledUp = true;
+            xpNeededForNextLevel = LevelingManager.calculateXpForNextLevel(currentLevel);
+        }
+
+        if (leveledUp) {
+            SharedPreferencesManager.saveUserLevel(this, currentLevel);
+            Toast.makeText(this, "ČESTITAMO! Prešli ste na NIVO " + currentLevel + "!", Toast.LENGTH_LONG).show();
+        }
+    }
 }

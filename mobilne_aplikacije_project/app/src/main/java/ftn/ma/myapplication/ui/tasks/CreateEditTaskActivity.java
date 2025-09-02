@@ -32,6 +32,7 @@ public class CreateEditTaskActivity extends AppCompatActivity {
     private TaskDao taskDao;
     private CategoryDao categoryDao;
     private ExecutorService executorService;
+    private Task taskToEdit = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -49,6 +50,13 @@ public class CreateEditTaskActivity extends AppCompatActivity {
         spinnerDifficulty = findViewById(R.id.spinnerDifficulty);
         spinnerImportance = findViewById(R.id.spinnerImportance);
         buttonSaveTask = findViewById(R.id.buttonSaveTask);
+
+        if (getIntent().hasExtra("EDIT_TASK")) {
+            taskToEdit = (Task) getIntent().getSerializableExtra("EDIT_TASK");
+            setTitle("Izmeni zadatak"); // Menjamo naslov ekrana
+        } else {
+            setTitle("Dodaj novi zadatak");
+        }
 
         setupSpinners();
         buttonSaveTask.setOnClickListener(v -> saveTask());
@@ -71,8 +79,29 @@ public class CreateEditTaskActivity extends AppCompatActivity {
                 ArrayAdapter<Category> categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoriesFromDb);
                 categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 spinnerCategory.setAdapter(categoryAdapter);
+                if (taskToEdit != null) {
+                    populateForm(taskToEdit);
+                }
             });
         });
+    }
+
+    private void populateForm(Task task) {
+        editTextTaskName.setText(task.getName());
+        editTextTaskDescription.setText(task.getDescription());
+        buttonSaveTask.setText("Sačuvaj izmene");
+
+        // Postavljanje selekcije za spinere (malo je komplikovanije)
+        ArrayAdapter<Category> categoryAdapter = (ArrayAdapter<Category>) spinnerCategory.getAdapter();
+        for (int i = 0; i < categoryAdapter.getCount(); i++) {
+            if (categoryAdapter.getItem(i).getId() == task.getCategoryId()) {
+                spinnerCategory.setSelection(i);
+                break;
+            }
+        }
+
+        spinnerDifficulty.setSelection(task.getDifficulty().ordinal());
+        spinnerImportance.setSelection(task.getImportance().ordinal());
     }
 
     private void saveTask() {
@@ -88,16 +117,21 @@ public class CreateEditTaskActivity extends AppCompatActivity {
             return;
         }
 
-        Task newTask = new Task();
-        newTask.setName(name);
-        newTask.setDescription(editTextTaskDescription.getText().toString());
-        newTask.setDifficulty((Task.Difficulty) spinnerDifficulty.getSelectedItem());
-        newTask.setImportance((Task.Importance) spinnerImportance.getSelectedItem());
-        newTask.setStatus(Task.Status.AKTIVAN);
-        newTask.setCategoryId(selectedCategory.getId());
+        final Task task = (taskToEdit == null) ? new Task() : taskToEdit;
+
+        task.setName(name);
+        task.setDescription(editTextTaskDescription.getText().toString());
+        task.setDifficulty((Task.Difficulty) spinnerDifficulty.getSelectedItem());
+        task.setImportance((Task.Importance) spinnerImportance.getSelectedItem());
+        task.setStatus(task.getStatus() == null ? Task.Status.AKTIVAN : task.getStatus()); // Zadržavamo status ako postoji
+        task.setCategoryId(selectedCategory.getId());
 
         executorService.execute(() -> {
-            taskDao.insert(newTask);
+            if (taskToEdit == null) {
+                taskDao.insert(task); // Ako je novi, radi INSERT
+            } else {
+                taskDao.update(task); // Ako je postojeći, radi UPDATE
+            }
             finish();
         });
     }

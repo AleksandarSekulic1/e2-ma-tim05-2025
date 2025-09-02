@@ -55,6 +55,8 @@ public class Task implements Serializable {
     private Date endDate;
     private int repetitionInterval;
     private RepetitionUnit repetitionUnit; // The variable is of type RepetitionUnit
+    // --- NOVO POLJE ---
+    private boolean xpAwarded;
 
     // --- NOVO: Polje za čuvanje ID-ja kategorije ---
     private long categoryId;
@@ -177,5 +179,13 @@ public class Task implements Serializable {
 
     public void setCategoryId(long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public boolean isXpAwarded() {
+        return xpAwarded;
+    }
+
+    public void setXpAwarded(boolean xpAwarded) {
+        this.xpAwarded = xpAwarded;
     }
 }

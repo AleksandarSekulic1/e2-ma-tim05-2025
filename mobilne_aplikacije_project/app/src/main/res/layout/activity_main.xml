@@ -38,4 +38,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <Button
+        android:id="@+id/btnOpenTasks"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Open Tasks"
+        android:layout_marginTop="76dp"
+        app:layout_constraintTop_toBottomOf="@id/textTop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

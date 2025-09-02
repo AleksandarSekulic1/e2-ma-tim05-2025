@@ -21,6 +21,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.categories.CategoriesActivity" />
+        <activity android:name=".ui.tasks.TasksActivity" />
+        <activity android:name=".ui.tasks.CreateEditTaskActivity" />
     </application>
 
 </manifest>

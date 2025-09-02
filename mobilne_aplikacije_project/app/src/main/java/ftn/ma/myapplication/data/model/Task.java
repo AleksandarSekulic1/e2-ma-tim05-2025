@@ -1,8 +1,12 @@
 package ftn.ma.myapplication.data.model;
-
+import java.io.Serializable;
 import java.util.Date;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
 
-public class Task {
+@Entity(tableName = "tasks")
+public class Task implements Serializable {
 
     // --- Enums for predefined values ---
     // The enum TYPE is in English, but the VALUES remain in Serbian
@@ -32,12 +36,13 @@ public class Task {
         DAN,
         NEDELJA
     }
-
+    @PrimaryKey(autoGenerate = true)
 
     // --- Attributes of the Task class (in English) ---
     private long id;
     private String name;
     private String description;
+    @Ignore
     private Category category;
     private Date executionTime;
     private Difficulty difficulty; // The variable is of type Difficulty
@@ -51,12 +56,18 @@ public class Task {
     private int repetitionInterval;
     private RepetitionUnit repetitionUnit; // The variable is of type RepetitionUnit
 
+    // --- NOVO: Polje za čuvanje ID-ja kategorije ---
+    private long categoryId;
+
+    // --- NOVO: Getteri i setteri za categoryId ---
+    public long getCategoryId() {
+        return categoryId;
+    }
 
     // --- Constructors ---
     public Task() {
         // Empty constructor
     }
-
 
     // --- Getters and Setters (in English) ---
 
@@ -162,5 +173,9 @@ public class Task {
 
     public void setRepetitionUnit(RepetitionUnit repetitionUnit) {
         this.repetitionUnit = repetitionUnit;
+    }
+
+    public void setCategoryId(long categoryId) {
+        this.categoryId = categoryId;
     }
 }

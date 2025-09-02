@@ -23,6 +23,7 @@ import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.domain.LevelingManager;
 import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
+import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
@@ -154,17 +155,30 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         Toast.makeText(this, "Osvojili ste " + totalXp + " XP! (Ukupno: " + newTotalXp + ")", Toast.LENGTH_SHORT).show();
         SharedPreferencesManager.saveUserXp(this, newTotalXp);
 
-        int xpNeededForNextLevel = LevelingManager.calculateXpForNextLevel(currentLevel);
+        int xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
+
         boolean leveledUp = false;
-        while (newTotalXp >= xpNeededForNextLevel) {
-            currentLevel++;
+        // Petlja se izvršava sve dok korisnik ima više XP-a nego što je potrebno za TRENUTNI nivo
+        while (newTotalXp >= xpNeeded) {
+            currentLevel++; // Povećavamo nivo
             leveledUp = true;
-            xpNeededForNextLevel = LevelingManager.calculateXpForNextLevel(currentLevel);
+            // Sada proveravamo prag za sledeći, novodostignuti nivo
+            xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
         }
 
         if (leveledUp) {
             SharedPreferencesManager.saveUserLevel(this, currentLevel);
+            int newPp = LevelingManager.calculateTotalPpForLevel(currentLevel);
+            SharedPreferencesManager.saveUserPp(this, newPp);
+
             Toast.makeText(this, "ČESTITAMO! Prešli ste na NIVO " + currentLevel + "!", Toast.LENGTH_LONG).show();
+
+            // --- NOVI KOD: Pokrećemo borbu sa bosom ---
+            Intent intent = new Intent(TasksActivity.this, BossFightActivity.class);
+            // Šaljemo potrebne podatke novom ekranu
+            intent.putExtra("USER_LEVEL", currentLevel);
+            intent.putExtra("USER_PP", newPp);
+            startActivity(intent);
         }
     }
 }

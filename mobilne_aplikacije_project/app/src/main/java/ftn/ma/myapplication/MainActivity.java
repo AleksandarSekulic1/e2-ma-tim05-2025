@@ -10,6 +10,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import ftn.ma.myapplication.ui.categories.CategoriesActivity;
+import ftn.ma.myapplication.ui.tasks.TasksActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,5 +30,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        Button openTasksButton = findViewById(R.id.btnOpenTasks);
+        openTasksButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, TasksActivity.class);
+            startActivity(intent);
+        });
     }
 }

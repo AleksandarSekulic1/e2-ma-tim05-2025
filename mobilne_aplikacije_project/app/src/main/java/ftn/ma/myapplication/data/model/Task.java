@@ -5,6 +5,8 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
+import java.util.Date;
 @Entity(tableName = "tasks")
 public class Task implements Serializable {
 
@@ -60,6 +62,8 @@ public class Task implements Serializable {
 
     // --- NOVO: Polje za čuvanje ID-ja kategorije ---
     private long categoryId;
+    private Date completionDate; // Polje koje smo dodali
+
 
     // --- NOVO: Getteri i setteri za categoryId ---
     public long getCategoryId() {
@@ -187,5 +191,13 @@ public class Task implements Serializable {
 
     public void setXpAwarded(boolean xpAwarded) {
         this.xpAwarded = xpAwarded;
+    }
+
+    public Date getCompletionDate() {
+        return completionDate;
+    }
+
+    public void setCompletionDate(Date completionDate) {
+        this.completionDate = completionDate;
     }
 }

@@ -25,6 +25,7 @@
         <activity android:name=".ui.tasks.CreateEditTaskActivity" />
         <activity android:name=".ui.game.BossFightActivity" />
         <activity android:name=".ui.calendar.TasksCalendarActivity" />
+        <activity android:name=".ui.tasks.TaskDetailActivity" />
     </application>
 
 </manifest>

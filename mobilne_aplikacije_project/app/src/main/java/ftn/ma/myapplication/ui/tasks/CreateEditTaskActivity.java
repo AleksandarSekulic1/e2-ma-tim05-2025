@@ -28,7 +28,7 @@ import ftn.ma.myapplication.data.local.CategoryDao;
 import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
-
+import android.app.TimePickerDialog;
 public class CreateEditTaskActivity extends AppCompatActivity {
 
     // UI Elementi
@@ -54,6 +54,7 @@ public class CreateEditTaskActivity extends AppCompatActivity {
     private Calendar executionDateCalendar = Calendar.getInstance();
     private Calendar startDateCalendar = Calendar.getInstance();
     private Calendar endDateCalendar = Calendar.getInstance();
+    private Button buttonPickTime;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -100,6 +101,7 @@ public class CreateEditTaskActivity extends AppCompatActivity {
         textViewEndDate = findViewById(R.id.textViewEndDate);
         buttonPickStartDate = findViewById(R.id.buttonPickStartDate);
         buttonPickEndDate = findViewById(R.id.buttonPickEndDate);
+        buttonPickTime = findViewById(R.id.buttonPickTime);
     }
 
     private void setupListeners() {
@@ -107,13 +109,20 @@ public class CreateEditTaskActivity extends AppCompatActivity {
         buttonPickDate.setOnClickListener(v -> showDatePickerDialog(executionDateCalendar, textViewSelectedDate));
         buttonPickStartDate.setOnClickListener(v -> showDatePickerDialog(startDateCalendar, textViewStartDate));
         buttonPickEndDate.setOnClickListener(v -> showDatePickerDialog(endDateCalendar, textViewEndDate));
+        buttonPickTime.setOnClickListener(v -> showTimePickerDialog());
 
         checkBoxRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
             recurringOptionsLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             oneTimeTaskDateLayout.setVisibility(isChecked ? View.GONE : View.VISIBLE);
         });
     }
-
+    private void showTimePickerDialog() {
+        new TimePickerDialog(this, (view, hourOfDay, minute) -> {
+            executionDateCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+            executionDateCalendar.set(Calendar.MINUTE, minute);
+            updateAllDateTextViews(); // Osvežavamo prikaz da uključi i vreme
+        }, executionDateCalendar.get(Calendar.HOUR_OF_DAY), executionDateCalendar.get(Calendar.MINUTE), true).show();
+    }
     private void setupSpinners() {
         ArrayAdapter<Task.Difficulty> difficultyAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, Task.Difficulty.values());
         difficultyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);

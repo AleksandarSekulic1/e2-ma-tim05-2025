@@ -10,10 +10,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.data.model.Task;
+import java.text.SimpleDateFormat;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
@@ -21,6 +23,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     private TaskDao taskDao;
     private ExecutorService executorService;
     private OnTaskListener onTaskListener;
+    private SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
 
     public interface OnTaskListener {
         void onTaskLongClick(Task task);
@@ -39,6 +43,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         public View categoryColorView;
         public TextView taskNameTextView;
         public TextView taskCategoryTextView;
+        public TextView textViewTaskTime; // NOVO
         public CheckBox taskDoneCheckBox;
 
         public TaskViewHolder(@NonNull View itemView) {
@@ -46,6 +51,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             categoryColorView = itemView.findViewById(R.id.viewTaskCategoryColor);
             taskNameTextView = itemView.findViewById(R.id.textViewTaskName);
             taskCategoryTextView = itemView.findViewById(R.id.textViewTaskCategory);
+            textViewTaskTime = itemView.findViewById(R.id.textViewTaskTime); // NOVO
             taskDoneCheckBox = itemView.findViewById(R.id.checkBoxTaskDone);
         }
     }
@@ -74,6 +80,13 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.categoryColorView.setBackgroundColor(currentTask.getCategory().getColor());
         } else {
             holder.taskCategoryTextView.setText("Bez kategorije");
+        }
+
+        if (!currentTask.isRecurring() && currentTask.getExecutionTime() != null) {
+            holder.textViewTaskTime.setVisibility(View.VISIBLE);
+            holder.textViewTaskTime.setText("u " + timeFormatter.format(currentTask.getExecutionTime()));
+        } else {
+            holder.textViewTaskTime.setVisibility(View.GONE);
         }
 
         // Postavljamo izgled na osnovu statusa

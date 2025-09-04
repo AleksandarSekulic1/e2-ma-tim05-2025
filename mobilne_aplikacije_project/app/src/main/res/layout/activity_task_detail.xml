@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.tasks.TaskDetailActivity">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Naziv zadatka"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/textViewDetailTaskName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                tools:text="Pročitati knjigu" />
+
+            <TextView
+                android:id="@+id/textViewDetailTaskDescriptionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Opis"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/textViewDetailTaskDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                tools:text="Poglavlja 5-10" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?android:attr/listDivider" />
+
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:layout_marginTop="16dp">
+
+                <TextView android:text="Kategorija" android:layout_gravity="start" android:textStyle="bold"/>
+                <TextView android:id="@+id/textViewDetailCategory" tools:text="Učenje" android:layout_gravity="end" android:textSize="16sp"/>
+
+                <TextView android:text="Težina" android:layout_marginTop="8dp" android:layout_gravity="start" android:textStyle="bold"/>
+                <TextView android:id="@+id/textViewDetailDifficulty" tools:text="TEZAK" android:layout_gravity="end" android:textSize="16sp" android:layout_marginTop="8dp"/>
+
+                <TextView android:text="Bitnost" android:layout_marginTop="8dp" android:layout_gravity="start" android:textStyle="bold"/>
+                <TextView android:id="@+id/textViewDetailImportance" tools:text="VAZAN" android:layout_gravity="end" android:textSize="16sp" android:layout_marginTop="8dp"/>
+            </GridLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?android:attr/listDivider" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Status"
+                android:textSize="14sp" />
+            <Spinner
+                android:id="@+id/spinnerStatus"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <LinearLayout
+                android:id="@+id/detailRecurringLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Ponavljanje" android:textStyle="bold"/>
+                <TextView android:id="@+id/textViewDetailRecurringInfo" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="Ponavlja se svakih 2 dana" android:textSize="16sp"/>
+                <TextView android:id="@+id/textViewDetailRecurringRange" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="Od 5.9.2025 do 5.10.2025" android:textSize="16sp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/detailOneTimeLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Datum i vreme izvršenja" android:textStyle="bold"/>
+                <TextView android:id="@+id/textViewDetailExecutionDate" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="5.9.2025 u 14:30" android:textSize="16sp"/>
+            </LinearLayout>
+
+
+        </LinearLayout>
+    </ScrollView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabEditTask"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        app:srcCompat="@android:drawable/ic_menu_edit"
+        app:tint="@android:color/white"
+        tools:ignore="ContentDescription" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

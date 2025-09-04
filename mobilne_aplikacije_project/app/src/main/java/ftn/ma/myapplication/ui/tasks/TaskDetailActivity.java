@@ -130,31 +130,30 @@ public class TaskDetailActivity extends AppCompatActivity {
             detailRecurringLayout.setVisibility(View.GONE);
         }
 
-        // --- NOVA PROVERA ZA ZAKLJUČAVANJE ---
-        // Proveravamo da li zadatak sme da se menja i na osnovu toga prikazujemo/sakrivamo dugme
         if (isTaskLocked(currentTask)) {
             fabEditTask.setVisibility(View.GONE);
-            spinnerStatus.setEnabled(false); // Onemogućavamo i promenu statusa
+            spinnerStatus.setEnabled(false);
         } else {
             fabEditTask.setVisibility(View.VISIBLE);
             spinnerStatus.setEnabled(true);
         }
     }
 
+    // --- IZMENA: Logika za zaključavanje sada omogućava "grace period" od 3 dana ---
     private boolean isTaskLocked(Task task) {
-        // 1. Provera statusa
         if (task.getStatus() == Task.Status.URADJEN ||
                 task.getStatus() == Task.Status.OTKAZAN ||
                 task.getStatus() == Task.Status.NEURADJEN) {
             return true;
         }
-        // 2. Provera da li je vreme izvršenja prošlo
-        if (task.getExecutionTime() != null && task.getExecutionTime().before(new Date())) {
-            return true;
-        }
-        return false;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date gracePeriodLimit = calendar.getTime();
+
+        return task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit);
     }
-    
+
     private void setupStatusSpinner() {
         List<Task.Status> statusOptions = new ArrayList<>(Arrays.asList(Task.Status.values()));
         // Ako je zadatak jednokratan (nema grupu), uklanjamo opciju "PAUZIRAN"

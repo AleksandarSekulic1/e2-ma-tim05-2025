@@ -105,16 +105,20 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     // --- GLAVNA IZMENA: Učitavanje i filtriranje zadataka ---
     private void loadTasks() {
         executorService.execute(() -> {
+            // Prvo dobavljamo sve zadatke iz baze
             List<Task> tasksFromDb = taskDao.getAllTasks();
+
+            // --- NOVO: Pokrećemo proveru i ažuriranje statusa za zastarele zadatke ---
+            updateStatusesForPastTasks(tasksFromDb);
+
             Date today = getTodayAtMidnight();
 
-            // Specifikacija: "u listi prikazuju samo trenutni i budući zadaci"
-            // Sada je filter mnogo jednostavniji
+            // Filtriramo da se prikažu samo trenutni i budući zadaci
             List<Task> currentAndFutureTasks = tasksFromDb.stream()
                     .filter(task -> task.getExecutionTime() != null && !task.getExecutionTime().before(today))
                     .collect(Collectors.toList());
 
-            // Filtriranje po tabovima je sada zasnovano na `recurringGroupId`
+            // Ostatak filtriranja po tabovima i prikazivanje ostaje isti
             List<Task> filteredTasks;
             switch (currentFilter) {
                 case ONE_TIME:
@@ -133,7 +137,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                     break;
             }
 
-            // Učitavanje kategorija (nepromenjeno)
             List<Category> allCategories = categoryDao.getAllCategories();
             for (Task task : filteredTasks) {
                 for (Category category : allCategories) {
@@ -152,6 +155,31 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         });
     }
 
+    private void updateStatusesForPastTasks(List<Task> allTasks) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3); // Postavljamo granicu na 3 dana u prošlosti
+        Date threeDaysAgo = calendar.getTime();
+
+        List<Task> tasksToUpdate = new ArrayList<>();
+        for (Task task : allTasks) {
+            // Proveravamo samo aktivne zadatke koji su stariji od 3 dana
+            if (task.getStatus() == Task.Status.AKTIVAN &&
+                    task.getExecutionTime() != null &&
+                    task.getExecutionTime().before(threeDaysAgo)) {
+
+                task.setStatus(Task.Status.NEURADJEN);
+                tasksToUpdate.add(task);
+            }
+        }
+
+        // Ako ima zadataka za ažuriranje, radimo to u bazi
+        if (!tasksToUpdate.isEmpty()) {
+            for (Task task : tasksToUpdate) {
+                taskDao.update(task);
+            }
+        }
+    }
+
     private Date getTodayAtMidnight() {
         // ... (nepromenjeno)
         Calendar calendar = Calendar.getInstance();
@@ -164,12 +192,19 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
     // --- IZMENA: Logika za zaključane zadatke ---
     private boolean isTaskLocked(Task task) {
+        // Provera statusa ostaje ista
         if (task.getStatus() == Task.Status.URADJEN || task.getStatus() == Task.Status.OTKAZAN || task.getStatus() == Task.Status.NEURADJEN) {
             return true;
         }
-        // Provera je sada jednostavnija - da li je vreme izvršenja prošlo
-        return task.getExecutionTime() != null && task.getExecutionTime().before(new Date());
+
+        // Zadatak je zaključan samo ako je stariji od 3 dana
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date gracePeriodLimit = calendar.getTime();
+
+        return task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit);
     }
+
 
     // --- IZMENA: Meni sa opcijama ---
     @Override
@@ -273,7 +308,18 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
-        // ... (nepromenjeno)
+        // Proveravamo da li je zadatak stariji od 3 dana
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date gracePeriodLimit = calendar.getTime();
+
+        if (task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit)) {
+            Toast.makeText(this, "Ne možete menjati status zadataka starijih od 3 dana.", Toast.LENGTH_SHORT).show();
+            adapter.notifyItemChanged(taskList.indexOf(task)); // Vraćamo checkbox u prvobitno stanje
+            return;
+        }
+
+        // Ako je unutar 3 dana, nastavljamo sa standardnom logikom
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(task.getExecutionTime());
@@ -282,10 +328,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
             executorService.execute(() -> taskDao.update(task));
         }
     }
-
-    // Ostatak koda ostaje nepromenjen...
-    // awardXpForTask, updateUserStats, getXpForDifficulty, getXpForImportance,
-    // isSameDay, isSameWeek, isSameMonth
 
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {

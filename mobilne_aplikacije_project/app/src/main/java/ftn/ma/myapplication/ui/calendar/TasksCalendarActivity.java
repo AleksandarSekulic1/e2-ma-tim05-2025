@@ -83,18 +83,20 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
 
     private void loadAllTasksFromDb() {
         executorService.execute(() -> {
-            // Učitavamo sve zadatke iz baze samo jednom
             allTasks.clear();
-            allTasks.addAll(taskDao.getAllTasks());
+            List<Task> tasksFromDb = taskDao.getAllTasks();
 
-            // Učitavamo kategorije (nepromenjeno)
+            // --- NOVO: Pokrećemo proveru i ažuriranje statusa za zastarele zadatke ---
+            updateStatusesForPastTasks(tasksFromDb);
+
+            allTasks.addAll(tasksFromDb);
+
             List<Category> allCategories = categoryDao.getAllCategories();
             Map<Long, Category> categoryMap = allCategories.stream().collect(Collectors.toMap(Category::getId, c -> c));
             for (Task task : allTasks) {
                 task.setCategory(categoryMap.get(task.getCategoryId()));
             }
 
-            // Odmah prikazujemo zadatke za trenutno selektovani dan
             runOnUiThread(this::filterAndDisplayTasksForDate);
         });
     }
@@ -133,17 +135,41 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         cal.set(Calendar.MILLISECOND, 0);
     }
 
-    // --- IZMENJENA LOGIKA ZA ZAKLJUČAVANJE, IZMENU I BRISANJE ---
-    // (Sada je identična kao u TasksActivity radi konzistentnosti)
+    private void updateStatusesForPastTasks(List<Task> allTasks) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date threeDaysAgo = calendar.getTime();
 
+        List<Task> tasksToUpdate = new ArrayList<>();
+        for (Task task : allTasks) {
+            if (task.getStatus() == Task.Status.AKTIVAN &&
+                    task.getExecutionTime() != null &&
+                    task.getExecutionTime().before(threeDaysAgo)) {
+
+                task.setStatus(Task.Status.NEURADJEN);
+                tasksToUpdate.add(task);
+            }
+        }
+
+        if (!tasksToUpdate.isEmpty()) {
+            for (Task task : tasksToUpdate) {
+                taskDao.update(task);
+            }
+        }
+    }
+
+    // --- IZMENA: Logika za zaključane zadatke sada omogućava "grace period" ---
     private boolean isTaskLocked(Task task) {
         if (task.getStatus() == Task.Status.URADJEN || task.getStatus() == Task.Status.OTKAZAN || task.getStatus() == Task.Status.NEURADJEN) {
             return true;
         }
-        Calendar today = Calendar.getInstance();
-        setMidnight(today);
-        // Zadatak je zaključan ako je izabrani dan u kalendaru u prošlosti
-        return selectedCalendar.before(today);
+
+        // Zadatak je zaključan samo ako je stariji od 3 dana
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date gracePeriodLimit = calendar.getTime();
+
+        return task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit);
     }
 
     @Override
@@ -214,11 +240,18 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
-        if (isTaskLocked(task) && task.getStatus() != Task.Status.URADJEN) {
-            Toast.makeText(this, "Ne možete menjati status zadataka u prošlosti.", Toast.LENGTH_SHORT).show();
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        Date gracePeriodLimit = calendar.getTime();
+
+        if (task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit)) {
+            Toast.makeText(this, "Ne možete menjati status zadataka starijih od 3 dana.", Toast.LENGTH_SHORT).show();
+            // Vraćamo checkbox u prvobitno stanje
+            // notifyDataSetChanged je siguran način da se UI osveži
             taskAdapter.notifyDataSetChanged();
             return;
         }
+
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(new Date());
@@ -227,10 +260,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             executorService.execute(() -> taskDao.update(task));
         }
     }
-
-    // ... Ostatak fajla (awardXpForTask, updateUserStats, itd.) je nepromenjen ...
-    // Nema potrebe da ga kopiram ponovo, identičan je kao u vašem originalnom fajlu.
-
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
             List<Task> allTasks = taskDao.getAllTasks();

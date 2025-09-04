@@ -8,12 +8,14 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
+import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -26,13 +28,7 @@ import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.WeekFields;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
 
     private RecyclerView recyclerView;
@@ -166,90 +162,125 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         startActivity(intent);
     }
 
-    // --- ISPRAVLJENA METODA ---
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
-        if (isChecked) {
-            // Postavljamo datum završetka da bude ISTI KAO DATUM IZVRŠENJA
+        task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
+        if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(task.getExecutionTime());
-
-            if (!task.isXpAwarded()) {
-                checkQuotaAndAwardXp(task);
-            } else {
-                task.setStatus(Task.Status.URADJEN);
-                executorService.execute(() -> taskDao.update(task));
-            }
+            awardXpForTask(task);
         } else {
-            task.setStatus(Task.Status.AKTIVAN);
             executorService.execute(() -> taskDao.update(task));
         }
     }
 
-    private void checkQuotaAndAwardXp(Task completedTask) {
+    // U TasksActivity.java
+
+    private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
             List<Task> allTasks = taskDao.getAllTasks();
-            boolean quotaExceeded = false;
+            int xpForDifficulty = 0;
+            int xpForImportance = 0;
             String quotaMessage = "";
-            Date referenceDate = completedTask.getCompletionDate(); // Koristimo datum zadatka kao referencu
 
-            if (completedTask.getImportance() == Task.Importance.SPECIJALAN) {
-                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameMonth(t.getCompletionDate(), referenceDate) && t.getImportance() == Task.Importance.SPECIJALAN).count();
-                if (count >= 1) {
-                    quotaExceeded = true;
-                    quotaMessage = "Ispunjena je mesečna kvota za Specijalne zadatke!";
-                }
-            } else if (completedTask.getDifficulty() == Task.Difficulty.EKSTREMNO_TEZAK) {
-                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameWeek(t.getCompletionDate(), referenceDate) && t.getDifficulty() == Task.Difficulty.EKSTREMNO_TEZAK).count();
-                if (count >= 1) {
-                    quotaExceeded = true;
-                    quotaMessage = "Ispunjena je nedeljna kvota za ovu vrstu zadatka!";
-                }
+            // --- ISPRAVKA: Dodajemo 'final' ---
+            final Date referenceDate = (completedTask.getCompletionDate() == null) ? new Date() : completedTask.getCompletionDate();
+            final Task.Difficulty difficulty = completedTask.getDifficulty();
+            final Task.Importance importance = completedTask.getImportance();
+
+
+            // Provera kvote za Težinu
+            int difficultyBaseXp = getXpForDifficulty(difficulty);
+            if (difficulty == Task.Difficulty.EKSTREMNO_TEZAK) {
+                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameWeek(t.getCompletionDate(), referenceDate) && t.getDifficulty() == difficulty).count();
+                if (count < 1) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena nedeljna kvota za Težinu! ";
             } else {
                 List<Task> tasksCompletedOnDate = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameDay(t.getCompletionDate(), referenceDate)).collect(Collectors.toList());
-
-                if (isTaskInCategory(completedTask, Task.Difficulty.VEOMA_LAK, Task.Importance.NORMALAN)) {
-                    long count = tasksCompletedOnDate.stream().filter(t -> isTaskInCategory(t, Task.Difficulty.VEOMA_LAK, Task.Importance.NORMALAN)).count();
-                    if (count >= 5) {
-                        quotaExceeded = true;
-                        quotaMessage = "Ispunjena je dnevna kvota za 'Veoma lake' zadatke!";
-                    }
-                } else if (isTaskInCategory(completedTask, Task.Difficulty.LAK, Task.Importance.VAZAN)) {
-                    long count = tasksCompletedOnDate.stream().filter(t -> isTaskInCategory(t, Task.Difficulty.LAK, Task.Importance.VAZAN)).count();
-                    if (count >= 5) {
-                        quotaExceeded = true;
-                        quotaMessage = "Ispunjena je dnevna kvota za 'Lake' zadatke!";
-                    }
-                } else if (isTaskInCategory(completedTask, Task.Difficulty.TEZAK, Task.Importance.EKSTREMNO_VAZAN)) {
-                    long count = tasksCompletedOnDate.stream().filter(t -> isTaskInCategory(t, Task.Difficulty.TEZAK, Task.Importance.EKSTREMNO_VAZAN)).count();
-                    if (count >= 2) {
-                        quotaExceeded = true;
-                        quotaMessage = "Ispunjena je dnevna kvota za 'Teške' zadatke!";
-                    }
-                }
+                long count = tasksCompletedOnDate.stream().filter(t -> t.getDifficulty() == difficulty).count();
+                int limit = (difficulty == Task.Difficulty.TEZAK) ? 2 : 5;
+                if (count < limit) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Težinu! ";
             }
 
-            final boolean finalQuotaExceeded = quotaExceeded;
-            final String finalQuotaMessage = quotaMessage;
+            // Provera kvote za Bitnost
+            int importanceBaseXp = getXpForImportance(importance);
+            if (importance == Task.Importance.SPECIJALAN) {
+                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameMonth(t.getCompletionDate(), referenceDate) && t.getImportance() == importance).count();
+                if (count < 1) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena mesečna kvota za Bitnost! ";
+            } else {
+                List<Task> tasksCompletedOnDate = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameDay(t.getCompletionDate(), referenceDate)).collect(Collectors.toList());
+                long count = tasksCompletedOnDate.stream().filter(t -> t.getImportance() == importance).count();
+                int limit = (importance == Task.Importance.EKSTREMNO_VAZAN) ? 2 : 5;
+                if (count < limit) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Bitnost! ";
+            }
+
+            // Kreiramo finalne kopije za lambda izraz
+            final int finalTotalXpGained = xpForDifficulty + xpForImportance;
+            final String finalQuotaMessage = quotaMessage.trim();
 
             runOnUiThread(() -> {
-                if (finalQuotaExceeded) {
+                if (!finalQuotaMessage.isEmpty()) {
                     Toast.makeText(this, finalQuotaMessage, Toast.LENGTH_SHORT).show();
-                    completedTask.setXpAwarded(true);
-                } else {
-                    completedTask.setXpAwarded(true);
-                    awardXpForTask(completedTask);
                 }
-                completedTask.setStatus(Task.Status.URADJEN);
-                executorService.execute(() -> taskDao.update(completedTask));
+                if (finalTotalXpGained > 0) {
+                    updateUserStats(finalTotalXpGained);
+                }
             });
+
+            completedTask.setXpAwarded(true);
+            taskDao.update(completedTask);
         });
     }
 
-    private boolean isTaskInCategory(Task task, Task.Difficulty difficulty, Task.Importance importance) {
-        return task.getDifficulty() == difficulty || task.getImportance() == importance;
+
+    private void updateUserStats(int totalXpGained) {
+        int currentLevel = SharedPreferencesManager.getUserLevel(this);
+        int currentXp = SharedPreferencesManager.getUserXp(this);
+        int newTotalXp = currentXp + totalXpGained;
+
+        Toast.makeText(this, "Osvojili ste " + totalXpGained + " XP! (Ukupno: " + newTotalXp + ")", Toast.LENGTH_SHORT).show();
+        SharedPreferencesManager.saveUserXp(this, newTotalXp);
+
+        int xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
+        boolean leveledUp = false;
+        while (newTotalXp >= xpNeeded) {
+            currentLevel++;
+            leveledUp = true;
+            xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
+        }
+
+        if (leveledUp) {
+            SharedPreferencesManager.saveUserLevel(this, currentLevel);
+            int newPp = LevelingManager.calculateTotalPpForLevel(currentLevel);
+            SharedPreferencesManager.saveUserPp(this, newPp);
+            Toast.makeText(this, "ČESTITAMO! Prešli ste na NIVO " + currentLevel + "!", Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(TasksActivity.this, BossFightActivity.class);
+            intent.putExtra("USER_LEVEL", currentLevel);
+            intent.putExtra("USER_PP", newPp);
+            startActivity(intent);
+        }
     }
 
-    // --- POMOĆNE METODE ZA DATUME SU SADA ISPRAVLJENE DA POREDE DVA DATUMA ---
+    private int getXpForDifficulty(Task.Difficulty difficulty) {
+        if(difficulty == null) return 0;
+        switch (difficulty) {
+            case VEOMA_LAK: return 1;
+            case LAK: return 3;
+            case TEZAK: return 7;
+            case EKSTREMNO_TEZAK: return 20;
+            default: return 0;
+        }
+    }
+
+    private int getXpForImportance(Task.Importance importance) {
+        if(importance == null) return 0;
+        switch (importance) {
+            case NORMALAN: return 1;
+            case VAZAN: return 3;
+            case EKSTREMNO_VAZAN: return 10;
+            case SPECIJALAN: return 100;
+            default: return 0;
+        }
+    }
+
     private boolean isSameDay(Date date1, Date date2) {
         if (date1 == null || date2 == null) return false;
         LocalDate localDate1 = date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -271,49 +302,5 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         YearMonth month1 = YearMonth.from(date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         YearMonth month2 = YearMonth.from(date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         return month1.equals(month2);
-    }
-    private void awardXpForTask(Task task) {
-        int xpForDifficulty = 0;
-        switch (task.getDifficulty()) {
-            case VEOMA_LAK: xpForDifficulty = 1; break;
-            case LAK: xpForDifficulty = 3; break;
-            case TEZAK: xpForDifficulty = 7; break;
-            case EKSTREMNO_TEZAK: xpForDifficulty = 20; break;
-        }
-
-        int xpForImportance = 0;
-        switch (task.getImportance()) {
-            case NORMALAN: xpForImportance = 1; break;
-            case VAZAN: xpForImportance = 3; break;
-            case EKSTREMNO_VAZAN: xpForImportance = 10; break;
-            case SPECIJALAN: xpForImportance = 100; break;
-        }
-
-        int totalXp = xpForDifficulty + xpForImportance;
-        int currentLevel = SharedPreferencesManager.getUserLevel(this);
-        int currentXp = SharedPreferencesManager.getUserXp(this);
-        int newTotalXp = currentXp + totalXp;
-
-        Toast.makeText(this, "Osvojili ste " + totalXp + " XP! (Ukupno: " + newTotalXp + ")", Toast.LENGTH_SHORT).show();
-        SharedPreferencesManager.saveUserXp(this, newTotalXp);
-
-        int xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
-        boolean leveledUp = false;
-        while (newTotalXp >= xpNeeded) {
-            currentLevel++;
-            leveledUp = true;
-            xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
-        }
-
-        if (leveledUp) {
-            SharedPreferencesManager.saveUserLevel(this, currentLevel);
-            int newPp = LevelingManager.calculateTotalPpForLevel(currentLevel);
-            SharedPreferencesManager.saveUserPp(this, newPp);
-            Toast.makeText(this, "ČESTITAMO! Prešli ste na NIVO " + currentLevel + "!", Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(TasksActivity.this, BossFightActivity.class);
-            intent.putExtra("USER_LEVEL", currentLevel);
-            intent.putExtra("USER_PP", newPp);
-            startActivity(intent);
-        }
     }
 }

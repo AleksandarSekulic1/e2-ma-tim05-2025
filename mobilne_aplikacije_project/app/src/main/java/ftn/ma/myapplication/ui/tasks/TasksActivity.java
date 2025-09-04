@@ -28,6 +28,8 @@ import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
+import com.google.android.material.tabs.TabLayout;
+import java.util.stream.Collectors;
 
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
 
@@ -38,6 +40,12 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     private TaskDao taskDao;
     private CategoryDao categoryDao;
     private ExecutorService executorService;
+    private enum FilterState {
+        ALL, ONE_TIME, RECURRING
+    }
+    private TabLayout tabLayout;
+    private FilterState currentFilter = FilterState.ALL; // Početni filter je "Svi"
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -51,12 +59,44 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
         recyclerView = findViewById(R.id.recyclerViewTasks);
         fab = findViewById(R.id.fabAddTask);
+        tabLayout = findViewById(R.id.tabLayout); // Povezujemo TabLayout
 
         setupRecyclerView();
+        setupTabLayout(); // Pozivamo novu metodu za podešavanje tabova
 
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
             startActivity(intent);
+        });
+    }
+
+    private void setupTabLayout() {
+        tabLayout.addTab(tabLayout.newTab().setText("Svi"));
+        tabLayout.addTab(tabLayout.newTab().setText("Jednokratni"));
+        tabLayout.addTab(tabLayout.newTab().setText("Ponavljajući"));
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                switch (tab.getPosition()) {
+                    case 0:
+                        currentFilter = FilterState.ALL;
+                        break;
+                    case 1:
+                        currentFilter = FilterState.ONE_TIME;
+                        break;
+                    case 2:
+                        currentFilter = FilterState.RECURRING;
+                        break;
+                }
+                loadTasks(); // Ponovo učitavamo zadatke sa novim filterom
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
         });
     }
 
@@ -75,8 +115,24 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     private void loadTasks() {
         executorService.execute(() -> {
             List<Task> tasksFromDb = taskDao.getAllTasks();
+
+            // Filtriramo listu pre slanja na UI nit
+            List<Task> filteredTasks;
+            switch (currentFilter) {
+                case ONE_TIME:
+                    filteredTasks = tasksFromDb.stream().filter(task -> !task.isRecurring()).collect(Collectors.toList());
+                    break;
+                case RECURRING:
+                    filteredTasks = tasksFromDb.stream().filter(Task::isRecurring).collect(Collectors.toList());
+                    break;
+                case ALL:
+                default:
+                    filteredTasks = tasksFromDb;
+                    break;
+            }
+
             List<Category> allCategories = categoryDao.getAllCategories();
-            for (Task task : tasksFromDb) {
+            for (Task task : filteredTasks) {
                 for (Category category : allCategories) {
                     if (task.getCategoryId() == category.getId()) {
                         task.setCategory(category);
@@ -84,9 +140,10 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                     }
                 }
             }
+
             runOnUiThread(() -> {
                 taskList.clear();
-                taskList.addAll(tasksFromDb);
+                taskList.addAll(filteredTasks);
                 adapter.notifyDataSetChanged();
             });
         });

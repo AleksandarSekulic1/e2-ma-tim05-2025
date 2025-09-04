@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.widget.CalendarView;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,7 +34,6 @@ import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.ui.tasks.CreateEditTaskActivity;
 import ftn.ma.myapplication.ui.tasks.TaskAdapter;
 import ftn.ma.myapplication.ui.tasks.TaskDetailActivity;
-import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class TasksCalendarActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
@@ -45,7 +43,7 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
     private TextView textViewSelectedDateTasks;
     private TaskAdapter taskAdapter;
 
-    private List<Task> allTasks = new ArrayList<>();
+    private List<Task> allTasks = new ArrayList<>(); // Keširana lista svih zadataka
     private List<Task> displayedTasks = new ArrayList<>();
     private TaskDao taskDao;
     private CategoryDao categoryDao;
@@ -67,12 +65,12 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         recyclerViewTasksForDay = findViewById(R.id.recyclerViewTasksForDay);
         textViewSelectedDateTasks = findViewById(R.id.textViewSelectedDateTasks);
 
-        // Prosleđujemo "this" kao listener adapteru
         taskAdapter = new TaskAdapter(displayedTasks, taskDao, executorService, this);
         recyclerViewTasksForDay.setAdapter(taskAdapter);
 
         calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
             selectedCalendar.set(year, month, dayOfMonth);
+            // Sada samo filtriramo već učitanu listu, nema potrebe za novim pozivom baze
             filterAndDisplayTasksForDate();
         });
     }
@@ -80,25 +78,28 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
     @Override
     protected void onResume() {
         super.onResume();
-        // Ponovo učitavamo podatke kada se vratimo na ekran (npr. nakon izmene zadatka)
         loadAllTasksFromDb();
     }
 
     private void loadAllTasksFromDb() {
         executorService.execute(() -> {
+            // Učitavamo sve zadatke iz baze samo jednom
             allTasks.clear();
             allTasks.addAll(taskDao.getAllTasks());
-            List<Category> allCategories = categoryDao.getAllCategories();
 
+            // Učitavamo kategorije (nepromenjeno)
+            List<Category> allCategories = categoryDao.getAllCategories();
             Map<Long, Category> categoryMap = allCategories.stream().collect(Collectors.toMap(Category::getId, c -> c));
             for (Task task : allTasks) {
                 task.setCategory(categoryMap.get(task.getCategoryId()));
             }
 
+            // Odmah prikazujemo zadatke za trenutno selektovani dan
             runOnUiThread(this::filterAndDisplayTasksForDate);
         });
     }
 
+    // --- GLAVNA IZMENA: PRIKAZ ZADATAKA ---
     private void filterAndDisplayTasksForDate() {
         int year = selectedCalendar.get(Calendar.YEAR);
         int month = selectedCalendar.get(Calendar.MONTH);
@@ -107,51 +108,19 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         String selectedDateText = "Zadaci za: " + dayOfMonth + "." + (month + 1) + "." + year;
         textViewSelectedDateTasks.setText(selectedDateText);
 
-        List<Task> tasksForSelectedDate = new ArrayList<>();
-        Calendar selectedCal = (Calendar) selectedCalendar.clone();
-        setMidnight(selectedCal);
-
-        for (Task task : allTasks) {
-            if (task.isRecurring()) {
-                if (task.getStartDate() == null || task.getEndDate() == null) continue;
-
-                Calendar startCal = Calendar.getInstance();
-                startCal.setTime(task.getStartDate());
-                setMidnight(startCal);
-
-                Calendar endCal = Calendar.getInstance();
-                endCal.setTime(task.getEndDate());
-                setMidnight(endCal);
-
-                if (!selectedCal.before(startCal) && !selectedCal.after(endCal)) {
-                    long diffInMillis = selectedCal.getTimeInMillis() - startCal.getTimeInMillis();
-                    long diffInDays = diffInMillis / (24 * 60 * 60 * 1000);
-
-                    if (task.getRepetitionUnit() == Task.RepetitionUnit.DAN) {
-                        if (diffInDays % task.getRepetitionInterval() == 0) {
-                            tasksForSelectedDate.add(task);
-                        }
-                    } else { // NEDELJA
-                        if (startCal.get(Calendar.DAY_OF_WEEK) == selectedCal.get(Calendar.DAY_OF_WEEK)) {
-                            long diffInWeeks = diffInDays / 7;
-                            if (diffInWeeks % task.getRepetitionInterval() == 0) {
-                                tasksForSelectedDate.add(task);
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (task.getExecutionTime() != null) {
+        // NEMA VIŠE KOMPLEKSNE LOGIKE!
+        // Jednostavno filtriramo listu svih zadataka i tražimo one čiji se executionTime poklapa sa izabranim danom
+        List<Task> tasksForSelectedDate = allTasks.stream()
+                .filter(task -> {
+                    if (task.getExecutionTime() == null) return false;
                     Calendar taskCal = Calendar.getInstance();
                     taskCal.setTime(task.getExecutionTime());
-                    if (taskCal.get(Calendar.YEAR) == year && taskCal.get(Calendar.MONTH) == month && taskCal.get(Calendar.DAY_OF_MONTH) == dayOfMonth) {
-                        tasksForSelectedDate.add(task);
-                    }
-                }
-            }
-        }
+                    return taskCal.get(Calendar.YEAR) == year &&
+                            taskCal.get(Calendar.MONTH) == month &&
+                            taskCal.get(Calendar.DAY_OF_MONTH) == dayOfMonth;
+                })
+                .collect(Collectors.toList());
 
-        // Ažuriramo podatke u postojećem adapteru, umesto da pravimo novi
         displayedTasks.clear();
         displayedTasks.addAll(tasksForSelectedDate);
         taskAdapter.notifyDataSetChanged();
@@ -164,11 +133,22 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         cal.set(Calendar.MILLISECOND, 0);
     }
 
-    // --- Implementacija metoda iz OnTaskListener interfejsa ---
+    // --- IZMENJENA LOGIKA ZA ZAKLJUČAVANJE, IZMENU I BRISANJE ---
+    // (Sada je identična kao u TasksActivity radi konzistentnosti)
 
-    // U TasksCalendarActivity.java
+    private boolean isTaskLocked(Task task) {
+        if (task.getStatus() == Task.Status.URADJEN || task.getStatus() == Task.Status.OTKAZAN || task.getStatus() == Task.Status.NEURADJEN) {
+            return true;
+        }
+        Calendar today = Calendar.getInstance();
+        setMidnight(today);
+        // Zadatak je zaključan ako je izabrani dan u kalendaru u prošlosti
+        return selectedCalendar.before(today);
+    }
+
     @Override
     public void onTaskClick(Task task) {
+        // Vraćeno na originalno stanje po želji - otvara prikaz detalja
         Intent intent = new Intent(this, TaskDetailActivity.class);
         intent.putExtra("VIEW_TASK", task);
         startActivity(intent);
@@ -176,35 +156,82 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
 
     @Override
     public void onTaskLongClick(Task task) {
-        // Koristimo istu logiku menija kao u TasksActivity
-        // (za ovo su potrebne i metode showDeleteConfirmationDialog, deleteTask, changeTaskStatus)
-        // Radi jednostavnosti, možete kopirati te metode iz TasksActivity u ovaj fajl
+        if (isTaskLocked(task)) {
+            Toast.makeText(this, "Zadaci iz prošlosti se ne mogu menjati.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> options = new ArrayList<>();
+        options.add("Izmeni"); // Uvek nudimo izmenu
+
+        if (task.getRecurringGroupId() != null) {
+            options.add("Obriši samo ovaj zadatak");
+            options.add("Obriši ovaj i sve buduće");
+        } else {
+            options.add("Obriši");
+        }
+        options.add("Nazad");
+
+        final CharSequence[] items = options.toArray(new CharSequence[0]);
         new AlertDialog.Builder(this)
-                .setTitle("Obriši zadatak")
-                .setMessage("Da li ste sigurni da želite da obrišete zadatak '" + task.getName() + "'?")
-                .setPositiveButton("Obriši", (dialog, which) -> {
-                    executorService.execute(() -> {
-                        taskDao.delete(task);
-                        loadAllTasksFromDb(); // Ponovo učitaj sve
-                    });
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
+                .setTitle("Izaberi akciju za: '" + task.getName() + "'")
+                .setItems(items, (dialog, item) -> {
+                    String selected = items[item].toString();
+                    switch (selected) {
+                        case "Izmeni":
+                            Intent intent = new Intent(this, CreateEditTaskActivity.class);
+                            intent.putExtra("EDIT_TASK", task);
+                            if (task.getRecurringGroupId() != null) {
+                                intent.putExtra("RECURRING_EDIT_DATE", task.getExecutionTime().getTime());
+                            }
+                            startActivity(intent);
+                            break;
+                        case "Obriši":
+                        case "Obriši samo ovaj zadatak":
+                            deleteTask(task, true);
+                            break;
+                        case "Obriši ovaj i sve buduće":
+                            deleteTask(task, false);
+                            break;
+                        case "Nazad":
+                            dialog.dismiss();
+                            break;
+                    }
+                }).show();
+    }
+
+    private void deleteTask(Task task, boolean justThisOne) {
+        executorService.execute(() -> {
+            if (justThisOne || task.getRecurringGroupId() == null) {
+                taskDao.delete(task);
+            } else {
+                taskDao.deleteFutureByGroupId(task.getRecurringGroupId(), task.getExecutionTime());
+            }
+            // Ponovo učitavamo SVE zadatke iz baze da bi se promene odrazile
+            loadAllTasksFromDb();
+        });
     }
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
+        if (isTaskLocked(task) && task.getStatus() != Task.Status.URADJEN) {
+            Toast.makeText(this, "Ne možete menjati status zadataka u prošlosti.", Toast.LENGTH_SHORT).show();
+            taskAdapter.notifyDataSetChanged();
+            return;
+        }
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
-            task.setCompletionDate(task.getExecutionTime());
+            task.setCompletionDate(new Date());
             awardXpForTask(task);
         } else {
             executorService.execute(() -> taskDao.update(task));
         }
     }
 
+    // ... Ostatak fajla (awardXpForTask, updateUserStats, itd.) je nepromenjen ...
+    // Nema potrebe da ga kopiram ponovo, identičan je kao u vašem originalnom fajlu.
+
     private void awardXpForTask(Task completedTask) {
-        // Ova metoda je sada identična kao u TasksActivity
         executorService.execute(() -> {
             List<Task> allTasks = taskDao.getAllTasks();
             int xpForDifficulty = 0;
@@ -224,8 +251,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
                 int limit = (difficulty == Task.Difficulty.TEZAK) ? 2 : 5;
                 if (count < limit) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Težinu! ";
             }
-
-            //Task.Importance importance = completedTask.getImportance();
             int importanceBaseXp = getXpForImportance(importance);
             if (importance == Task.Importance.SPECIJALAN) {
                 long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameMonth(t.getCompletionDate(), referenceDate) && t.getImportance() == importance).count();
@@ -236,10 +261,8 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
                 int limit = (importance == Task.Importance.EKSTREMNO_VAZAN) ? 2 : 5;
                 if (count < limit) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Bitnost! ";
             }
-
             final int finalTotalXpGained = xpForDifficulty + xpForImportance;
             final String finalQuotaMessage = quotaMessage.trim();
-
             runOnUiThread(() -> {
                 if (!finalQuotaMessage.isEmpty()) {
                     Toast.makeText(this, finalQuotaMessage, Toast.LENGTH_SHORT).show();
@@ -248,20 +271,16 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
                     updateUserStats(finalTotalXpGained);
                 }
             });
-
             completedTask.setXpAwarded(true);
             taskDao.update(completedTask);
         });
     }
-
     private void updateUserStats(int totalXpGained) {
         int currentLevel = SharedPreferencesManager.getUserLevel(this);
         int currentXp = SharedPreferencesManager.getUserXp(this);
         int newTotalXp = currentXp + totalXpGained;
-
         Toast.makeText(this, "Osvojili ste " + totalXpGained + " XP! (Ukupno: " + newTotalXp + ")", Toast.LENGTH_SHORT).show();
         SharedPreferencesManager.saveUserXp(this, newTotalXp);
-
         int xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
         boolean leveledUp = false;
         while (newTotalXp >= xpNeeded) {
@@ -269,7 +288,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             leveledUp = true;
             xpNeeded = LevelingManager.getXpNeededForLevel(currentLevel);
         }
-
         if (leveledUp) {
             SharedPreferencesManager.saveUserLevel(this, currentLevel);
             int newPp = LevelingManager.calculateTotalPpForLevel(currentLevel);
@@ -281,7 +299,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             startActivity(intent);
         }
     }
-
     private int getXpForDifficulty(Task.Difficulty difficulty) {
         if (difficulty == null) return 0;
         switch (difficulty) {
@@ -292,7 +309,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             default: return 0;
         }
     }
-
     private int getXpForImportance(Task.Importance importance) {
         if (importance == null) return 0;
         switch (importance) {
@@ -303,14 +319,12 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             default: return 0;
         }
     }
-
     private boolean isSameDay(Date date1, Date date2) {
         if (date1 == null || date2 == null) return false;
         LocalDate localDate1 = date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate localDate2 = date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         return localDate1.equals(localDate2);
     }
-
     private boolean isSameWeek(Date date1, Date date2) {
         if (date1 == null || date2 == null) return false;
         LocalDate localDate1 = date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -319,7 +333,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         return localDate1.get(weekFields.weekOfYear()) == localDate2.get(weekFields.weekOfYear())
                 && localDate1.getYear() == localDate2.getYear();
     }
-
     private boolean isSameMonth(Date date1, Date date2) {
         if (date1 == null || date2 == null) return false;
         YearMonth month1 = YearMonth.from(date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());

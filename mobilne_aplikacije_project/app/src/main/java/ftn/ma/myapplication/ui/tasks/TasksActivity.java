@@ -30,6 +30,7 @@ import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 import com.google.android.material.tabs.TabLayout;
 import java.util.stream.Collectors;
+import java.util.Calendar;
 
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
 
@@ -116,18 +117,33 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         executorService.execute(() -> {
             List<Task> tasksFromDb = taskDao.getAllTasks();
 
-            // Filtriramo listu pre slanja na UI nit
+            // --- NOVI KOD ZA FILTRIRANJE PROŠLIH ZADATAKA ---
+            Date today = getTodayAtMidnight();
+            List<Task> currentAndFutureTasks = tasksFromDb.stream()
+                    .filter(task -> {
+                        if (task.isRecurring()) {
+                            // Ako je ponavljajući, prikazujemo ga ako mu datum završetka još nije prošao
+                            return task.getEndDate() != null && !task.getEndDate().before(today);
+                        } else {
+                            // Ako je jednokratan, prikazujemo ga ako mu datum izvršenja još nije prošao
+                            return task.getExecutionTime() != null && !task.getExecutionTime().before(today);
+                        }
+                    })
+                    .collect(Collectors.toList());
+            // --- KRAJ NOVOG KODA ---
+
+            // Filtriramo listu po tabovima (ovo ostaje isto)
             List<Task> filteredTasks;
             switch (currentFilter) {
                 case ONE_TIME:
-                    filteredTasks = tasksFromDb.stream().filter(task -> !task.isRecurring()).collect(Collectors.toList());
+                    filteredTasks = currentAndFutureTasks.stream().filter(task -> !task.isRecurring()).collect(Collectors.toList());
                     break;
                 case RECURRING:
-                    filteredTasks = tasksFromDb.stream().filter(Task::isRecurring).collect(Collectors.toList());
+                    filteredTasks = currentAndFutureTasks.stream().filter(Task::isRecurring).collect(Collectors.toList());
                     break;
                 case ALL:
                 default:
-                    filteredTasks = tasksFromDb;
+                    filteredTasks = currentAndFutureTasks;
                     break;
             }
 
@@ -147,6 +163,16 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                 adapter.notifyDataSetChanged();
             });
         });
+    }
+
+    // Pomoćna metoda koja vraća današnji datum sa vremenom u 00:00:00
+    private Date getTodayAtMidnight() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 
     @Override

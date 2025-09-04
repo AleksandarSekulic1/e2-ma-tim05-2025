@@ -1,215 +1,180 @@
-package ftn.ma.myapplication.ui.calendar;
+package ftn.ma.myapplication.ui.tasks;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.CalendarView;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
-
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.local.AppDatabase;
-import ftn.ma.myapplication.data.local.CategoryDao;
 import ftn.ma.myapplication.data.local.TaskDao;
-import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.domain.LevelingManager;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
-import ftn.ma.myapplication.ui.tasks.CreateEditTaskActivity;
-import ftn.ma.myapplication.ui.tasks.TaskAdapter;
-import ftn.ma.myapplication.ui.tasks.TaskDetailActivity;
-import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
-public class TasksCalendarActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
+public class TaskDetailActivity extends AppCompatActivity {
 
-    private CalendarView calendarView;
-    private RecyclerView recyclerViewTasksForDay;
-    private TextView textViewSelectedDateTasks;
-    private TaskAdapter taskAdapter;
+    private TextView textViewDetailTaskName, textViewDetailTaskDescription, textViewDetailCategory;
+    private TextView textViewDetailDifficulty, textViewDetailImportance;
+    private LinearLayout detailRecurringLayout, detailOneTimeLayout;
+    private TextView textViewDetailRecurringInfo, textViewDetailRecurringRange, textViewDetailExecutionDate;
+    private Spinner spinnerStatus;
+    private FloatingActionButton fabEditTask;
 
-    private List<Task> allTasks = new ArrayList<>();
-    private List<Task> displayedTasks = new ArrayList<>();
+    private Task currentTask;
     private TaskDao taskDao;
-    private CategoryDao categoryDao;
     private ExecutorService executorService;
-    private Calendar selectedCalendar = Calendar.getInstance();
+    private boolean isSpinnerInitialSetup = true;
+    private SimpleDateFormat dateTimeFormatter = new SimpleDateFormat("d.M.yyyy 'u' HH:mm", Locale.getDefault());
+    private SimpleDateFormat dateFormatter = new SimpleDateFormat("d.M.yyyy", Locale.getDefault());
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tasks_calendar);
-        setTitle("Kalendar Zadataka");
+        setContentView(R.layout.activity_task_detail);
 
-        AppDatabase database = AppDatabase.getDatabase(getApplicationContext());
-        taskDao = database.taskDao();
-        categoryDao = database.categoryDao();
+        taskDao = AppDatabase.getDatabase(this).taskDao();
         executorService = Executors.newSingleThreadExecutor();
 
-        calendarView = findViewById(R.id.calendarView);
-        recyclerViewTasksForDay = findViewById(R.id.recyclerViewTasksForDay);
-        textViewSelectedDateTasks = findViewById(R.id.textViewSelectedDateTasks);
+        bindViews();
 
-        // Prosleđujemo "this" kao listener adapteru
-        taskAdapter = new TaskAdapter(displayedTasks, taskDao, executorService, this);
-        recyclerViewTasksForDay.setAdapter(taskAdapter);
-
-        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
-            selectedCalendar.set(year, month, dayOfMonth);
-            filterAndDisplayTasksForDate();
-        });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Ponovo učitavamo podatke kada se vratimo na ekran (npr. nakon izmene zadatka)
-        loadAllTasksFromDb();
-    }
-
-    private void loadAllTasksFromDb() {
-        executorService.execute(() -> {
-            allTasks.clear();
-            allTasks.addAll(taskDao.getAllTasks());
-            List<Category> allCategories = categoryDao.getAllCategories();
-
-            Map<Long, Category> categoryMap = allCategories.stream().collect(Collectors.toMap(Category::getId, c -> c));
-            for (Task task : allTasks) {
-                task.setCategory(categoryMap.get(task.getCategoryId()));
-            }
-
-            runOnUiThread(this::filterAndDisplayTasksForDate);
-        });
-    }
-
-    private void filterAndDisplayTasksForDate() {
-        int year = selectedCalendar.get(Calendar.YEAR);
-        int month = selectedCalendar.get(Calendar.MONTH);
-        int dayOfMonth = selectedCalendar.get(Calendar.DAY_OF_MONTH);
-
-        String selectedDateText = "Zadaci za: " + dayOfMonth + "." + (month + 1) + "." + year;
-        textViewSelectedDateTasks.setText(selectedDateText);
-
-        List<Task> tasksForSelectedDate = new ArrayList<>();
-        Calendar selectedCal = (Calendar) selectedCalendar.clone();
-        setMidnight(selectedCal);
-
-        for (Task task : allTasks) {
-            if (task.isRecurring()) {
-                if (task.getStartDate() == null || task.getEndDate() == null) continue;
-
-                Calendar startCal = Calendar.getInstance();
-                startCal.setTime(task.getStartDate());
-                setMidnight(startCal);
-
-                Calendar endCal = Calendar.getInstance();
-                endCal.setTime(task.getEndDate());
-                setMidnight(endCal);
-
-                if (!selectedCal.before(startCal) && !selectedCal.after(endCal)) {
-                    long diffInMillis = selectedCal.getTimeInMillis() - startCal.getTimeInMillis();
-                    long diffInDays = diffInMillis / (24 * 60 * 60 * 1000);
-
-                    if (task.getRepetitionUnit() == Task.RepetitionUnit.DAN) {
-                        if (diffInDays % task.getRepetitionInterval() == 0) {
-                            tasksForSelectedDate.add(task);
-                        }
-                    } else { // NEDELJA
-                        if (startCal.get(Calendar.DAY_OF_WEEK) == selectedCal.get(Calendar.DAY_OF_WEEK)) {
-                            long diffInWeeks = diffInDays / 7;
-                            if (diffInWeeks % task.getRepetitionInterval() == 0) {
-                                tasksForSelectedDate.add(task);
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (task.getExecutionTime() != null) {
-                    Calendar taskCal = Calendar.getInstance();
-                    taskCal.setTime(task.getExecutionTime());
-                    if (taskCal.get(Calendar.YEAR) == year && taskCal.get(Calendar.MONTH) == month && taskCal.get(Calendar.DAY_OF_MONTH) == dayOfMonth) {
-                        tasksForSelectedDate.add(task);
-                    }
-                }
-            }
+        currentTask = (Task) getIntent().getSerializableExtra("VIEW_TASK");
+        if (currentTask == null) {
+            Toast.makeText(this, "Greška: Zadatak nije pronađen.", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
 
-        // Ažuriramo podatke u postojećem adapteru, umesto da pravimo novi
-        displayedTasks.clear();
-        displayedTasks.addAll(tasksForSelectedDate);
-        taskAdapter.notifyDataSetChanged();
+        populateData();
+        setupStatusSpinner();
+
+        fabEditTask.setOnClickListener(v -> {
+            Intent intent = new Intent(TaskDetailActivity.this, CreateEditTaskActivity.class);
+            intent.putExtra("EDIT_TASK", currentTask);
+            startActivity(intent);
+            finish();
+        });
     }
 
-    private void setMidnight(Calendar cal) {
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
+    private void bindViews() {
+        textViewDetailTaskName = findViewById(R.id.textViewDetailTaskName);
+        textViewDetailTaskDescription = findViewById(R.id.textViewDetailTaskDescription);
+        textViewDetailCategory = findViewById(R.id.textViewDetailCategory);
+        spinnerStatus = findViewById(R.id.spinnerStatus);
+        fabEditTask = findViewById(R.id.fabEditTask);
+        textViewDetailDifficulty = findViewById(R.id.textViewDetailDifficulty);
+        textViewDetailImportance = findViewById(R.id.textViewDetailImportance);
+        detailRecurringLayout = findViewById(R.id.detailRecurringLayout);
+        detailOneTimeLayout = findViewById(R.id.detailOneTimeLayout);
+        textViewDetailRecurringInfo = findViewById(R.id.textViewDetailRecurringInfo);
+        textViewDetailRecurringRange = findViewById(R.id.textViewDetailRecurringRange);
+        textViewDetailExecutionDate = findViewById(R.id.textViewDetailExecutionDate);
     }
 
-    // --- Implementacija metoda iz OnTaskListener interfejsa ---
+    private void populateData() {
+        setTitle("Detalji zadatka");
+        textViewDetailTaskName.setText(currentTask.getName());
 
-    // U TasksCalendarActivity.java
-    @Override
-    public void onTaskClick(Task task) {
-        Intent intent = new Intent(this, TaskDetailActivity.class);
-        intent.putExtra("VIEW_TASK", task);
-        startActivity(intent);
-    }
-
-    @Override
-    public void onTaskLongClick(Task task) {
-        // Koristimo istu logiku menija kao u TasksActivity
-        // (za ovo su potrebne i metode showDeleteConfirmationDialog, deleteTask, changeTaskStatus)
-        // Radi jednostavnosti, možete kopirati te metode iz TasksActivity u ovaj fajl
-        new AlertDialog.Builder(this)
-                .setTitle("Obriši zadatak")
-                .setMessage("Da li ste sigurni da želite da obrišete zadatak '" + task.getName() + "'?")
-                .setPositiveButton("Obriši", (dialog, which) -> {
-                    executorService.execute(() -> {
-                        taskDao.delete(task);
-                        loadAllTasksFromDb(); // Ponovo učitaj sve
-                    });
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
-    }
-
-    @Override
-    public void onTaskCheckedChanged(Task task, boolean isChecked) {
-        task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
-        if (isChecked && !task.isXpAwarded()) {
-            task.setCompletionDate(task.getExecutionTime());
-            awardXpForTask(task);
+        if (currentTask.getDescription() != null && !currentTask.getDescription().isEmpty()) {
+            findViewById(R.id.textViewDetailTaskDescriptionLabel).setVisibility(View.VISIBLE);
+            textViewDetailTaskDescription.setVisibility(View.VISIBLE);
+            textViewDetailTaskDescription.setText(currentTask.getDescription());
         } else {
-            executorService.execute(() -> taskDao.update(task));
+            findViewById(R.id.textViewDetailTaskDescriptionLabel).setVisibility(View.GONE);
+            textViewDetailTaskDescription.setVisibility(View.GONE);
         }
+
+        if (currentTask.getCategory() != null) {
+            textViewDetailCategory.setText(currentTask.getCategory().getName());
+        } else {
+            textViewDetailCategory.setText("Nema kategoriju");
+        }
+
+        textViewDetailDifficulty.setText(currentTask.getDifficulty().name());
+        textViewDetailImportance.setText(currentTask.getImportance().name());
+
+        if (currentTask.isRecurring()) {
+            detailRecurringLayout.setVisibility(View.VISIBLE);
+            detailOneTimeLayout.setVisibility(View.GONE);
+            String recurringInfo = "Ponavlja se svakih " + currentTask.getRepetitionInterval() + " " + (currentTask.getRepetitionUnit() == Task.RepetitionUnit.DAN ? "dana" : "nedelja");
+            textViewDetailRecurringInfo.setText(recurringInfo);
+            String rangeInfo = "Od " + dateFormatter.format(currentTask.getStartDate()) + " do " + dateFormatter.format(currentTask.getEndDate());
+            textViewDetailRecurringRange.setText(rangeInfo);
+        } else {
+            detailRecurringLayout.setVisibility(View.GONE);
+            detailOneTimeLayout.setVisibility(View.VISIBLE);
+            if (currentTask.getExecutionTime() != null) {
+                textViewDetailExecutionDate.setText(dateTimeFormatter.format(currentTask.getExecutionTime()));
+            }
+        }
+    }
+
+    private void setupStatusSpinner() {
+        List<Task.Status> statusOptions = new ArrayList<>(Arrays.asList(Task.Status.values()));
+        if (!currentTask.isRecurring()) {
+            statusOptions.remove(Task.Status.PAUZIRAN);
+        }
+
+        ArrayAdapter<Task.Status> statusAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statusOptions);
+        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatus.setAdapter(statusAdapter);
+
+        if (currentTask.getStatus() != null) {
+            spinnerStatus.setSelection(statusOptions.indexOf(currentTask.getStatus()));
+        }
+
+        spinnerStatus.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (isSpinnerInitialSetup) {
+                    isSpinnerInitialSetup = false;
+                    return;
+                }
+                Task.Status newStatus = (Task.Status) parent.getItemAtPosition(position);
+                if (currentTask.getStatus() != newStatus) {
+                    currentTask.setStatus(newStatus);
+                    if (newStatus == Task.Status.URADJEN && !currentTask.isXpAwarded()) {
+                        currentTask.setCompletionDate(currentTask.getExecutionTime());
+                        awardXpForTask(currentTask);
+                    } else {
+                        executorService.execute(() -> taskDao.update(currentTask));
+                        Toast.makeText(TaskDetailActivity.this, "Status promenjen u: " + newStatus.name(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
     private void awardXpForTask(Task completedTask) {
-        // Ova metoda je sada identična kao u TasksActivity
         executorService.execute(() -> {
             List<Task> allTasks = taskDao.getAllTasks();
             int xpForDifficulty = 0;
             int xpForImportance = 0;
             String quotaMessage = "";
+
             final Date referenceDate = (completedTask.getCompletionDate() == null) ? new Date() : completedTask.getCompletionDate();
             final Task.Difficulty difficulty = completedTask.getDifficulty();
             final Task.Importance importance = completedTask.getImportance();
@@ -225,7 +190,6 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
                 if (count < limit) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Težinu! ";
             }
 
-            //Task.Importance importance = completedTask.getImportance();
             int importanceBaseXp = getXpForImportance(importance);
             if (importance == Task.Importance.SPECIJALAN) {
                 long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameMonth(t.getCompletionDate(), referenceDate) && t.getImportance() == importance).count();

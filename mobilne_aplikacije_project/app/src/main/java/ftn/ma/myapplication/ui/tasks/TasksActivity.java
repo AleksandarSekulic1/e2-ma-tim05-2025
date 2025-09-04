@@ -28,6 +28,8 @@ import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
+import com.google.android.material.tabs.TabLayout;
+import java.util.Calendar;
 
 public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
 
@@ -38,6 +40,12 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
     private TaskDao taskDao;
     private CategoryDao categoryDao;
     private ExecutorService executorService;
+    private enum FilterState {
+        ALL, ONE_TIME, RECURRING
+    }
+    private TabLayout tabLayout;
+    private FilterState currentFilter = FilterState.ALL;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -51,12 +59,34 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
         recyclerView = findViewById(R.id.recyclerViewTasks);
         fab = findViewById(R.id.fabAddTask);
+        tabLayout = findViewById(R.id.tabLayout);
 
         setupRecyclerView();
+        setupTabLayout();
 
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
             startActivity(intent);
+        });
+    }
+
+    private void setupTabLayout() {
+        // ... (nepromenjeno)
+        tabLayout.addTab(tabLayout.newTab().setText("Svi"));
+        tabLayout.addTab(tabLayout.newTab().setText("Jednokratni"));
+        tabLayout.addTab(tabLayout.newTab().setText("Ponavljajući"));
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                switch (tab.getPosition()) {
+                    case 0: currentFilter = FilterState.ALL; break;
+                    case 1: currentFilter = FilterState.ONE_TIME; break;
+                    case 2: currentFilter = FilterState.RECURRING; break;
+                }
+                loadTasks();
+            }
+            @Override public void onTabUnselected(TabLayout.Tab tab) {}
+            @Override public void onTabReselected(TabLayout.Tab tab) {}
         });
     }
 
@@ -72,11 +102,40 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         recyclerView.setAdapter(adapter);
     }
 
+    // --- GLAVNA IZMENA: Učitavanje i filtriranje zadataka ---
     private void loadTasks() {
         executorService.execute(() -> {
             List<Task> tasksFromDb = taskDao.getAllTasks();
+            Date today = getTodayAtMidnight();
+
+            // Specifikacija: "u listi prikazuju samo trenutni i budući zadaci"
+            // Sada je filter mnogo jednostavniji
+            List<Task> currentAndFutureTasks = tasksFromDb.stream()
+                    .filter(task -> task.getExecutionTime() != null && !task.getExecutionTime().before(today))
+                    .collect(Collectors.toList());
+
+            // Filtriranje po tabovima je sada zasnovano na `recurringGroupId`
+            List<Task> filteredTasks;
+            switch (currentFilter) {
+                case ONE_TIME:
+                    filteredTasks = currentAndFutureTasks.stream()
+                            .filter(task -> task.getRecurringGroupId() == null)
+                            .collect(Collectors.toList());
+                    break;
+                case RECURRING:
+                    filteredTasks = currentAndFutureTasks.stream()
+                            .filter(task -> task.getRecurringGroupId() != null)
+                            .collect(Collectors.toList());
+                    break;
+                case ALL:
+                default:
+                    filteredTasks = currentAndFutureTasks;
+                    break;
+            }
+
+            // Učitavanje kategorija (nepromenjeno)
             List<Category> allCategories = categoryDao.getAllCategories();
-            for (Task task : tasksFromDb) {
+            for (Task task : filteredTasks) {
                 for (Category category : allCategories) {
                     if (task.getCategoryId() == category.getId()) {
                         task.setCategory(category);
@@ -84,86 +143,137 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                     }
                 }
             }
+
             runOnUiThread(() -> {
                 taskList.clear();
-                taskList.addAll(tasksFromDb);
+                taskList.addAll(filteredTasks);
                 adapter.notifyDataSetChanged();
             });
         });
     }
 
+    private Date getTodayAtMidnight() {
+        // ... (nepromenjeno)
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
+    }
+
+    // --- IZMENA: Logika za zaključane zadatke ---
+    private boolean isTaskLocked(Task task) {
+        if (task.getStatus() == Task.Status.URADJEN || task.getStatus() == Task.Status.OTKAZAN || task.getStatus() == Task.Status.NEURADJEN) {
+            return true;
+        }
+        // Provera je sada jednostavnija - da li je vreme izvršenja prošlo
+        return task.getExecutionTime() != null && task.getExecutionTime().before(new Date());
+    }
+
+    // --- IZMENA: Meni sa opcijama ---
     @Override
     public void onTaskLongClick(Task task) {
+        if (isTaskLocked(task)) {
+            Toast.makeText(this, "Završeni ili istekli zadaci se ne mogu menjati.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         List<String> options = new ArrayList<>();
+        options.add("Izmeni");
+
+        // Ako je zadatak deo serije, nudimo dve opcije za brisanje
+        if (task.getRecurringGroupId() != null) {
+            options.add("Obriši samo ovaj zadatak");
+            options.add("Obriši ovaj i sve buduće");
+        } else {
+            options.add("Obriši");
+        }
+
+        // Statusi (nepromenjeno)
         switch (task.getStatus()) {
             case AKTIVAN:
-            case URADJEN:
-                options.add("Izmeni");
-                options.add("Obriši");
-                if (task.isRecurring()) {
-                    options.add("Pauziraj");
-                }
                 options.add("Otkaži");
                 break;
-            case PAUZIRAN:
-                options.add("Aktiviraj");
-                break;
-            case OTKAZAN:
-                Toast.makeText(this, "Ovaj zadatak je otkazan i ne može se menjati.", Toast.LENGTH_SHORT).show();
-                return;
+            // Pauziranje cele serije je kompleksno, za sada ga izostavljamo iz ovog menija
         }
         options.add("Nazad");
+
         final CharSequence[] items = options.toArray(new CharSequence[0]);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Izaberi akciju za: '" + task.getName() + "'");
         builder.setItems(items, (dialog, item) -> {
-            String selectedOption = items[item].toString();
-            switch (selectedOption) {
-                case "Izmeni": onTaskClick(task); break;
-                case "Obriši": showDeleteConfirmationDialog(task); break;
-                case "Pauziraj": changeTaskStatus(task, Task.Status.PAUZIRAN); break;
-                case "Otkaži": changeTaskStatus(task, Task.Status.OTKAZAN); break;
-                case "Aktiviraj": changeTaskStatus(task, Task.Status.AKTIVAN); break;
-                case "Nazad": dialog.dismiss(); break;
+            String selected = items[item].toString();
+            switch (selected) {
+                case "Izmeni":
+                    onTaskClick(task);
+                    break;
+                case "Obriši": // Brisanje jednokratnog
+                    deleteTask(task, true);
+                    break;
+                case "Obriši samo ovaj zadatak":
+                    deleteTask(task, true); // Brišemo samo ovu instancu
+                    break;
+                case "Obriši ovaj i sve buduće":
+                    deleteTask(task, false); // Brišemo celu buduću seriju
+                    break;
+                case "Otkaži":
+                    changeTaskStatus(task, Task.Status.OTKAZAN);
+                    break;
+                case "Nazad":
+                    dialog.dismiss();
+                    break;
             }
         });
         builder.show();
     }
 
-    private void showDeleteConfirmationDialog(Task task) {
-        new AlertDialog.Builder(this)
-                .setTitle("Obriši zadatak")
-                .setMessage("Da li ste sigurni da želite da obrišete zadatak '" + task.getName() + "'?")
-                .setPositiveButton("Obriši", (dialog, which) -> deleteTask(task))
-                .setNegativeButton("Otkaži", null)
-                .show();
-    }
-
-    private void deleteTask(Task task) {
+    // --- IZMENA: Logika brisanja ---
+    private void deleteTask(Task task, boolean justThisOne) {
         executorService.execute(() -> {
-            taskDao.delete(task);
+            if (justThisOne || task.getRecurringGroupId() == null) {
+                // Brišemo samo jedan zadatak (ili zato što je jednokratan, ili je korisnik tako izabrao)
+                taskDao.delete(task);
+            } else {
+                // Brišemo ovaj i sve buduće zadatke iz serije
+                taskDao.deleteFutureByGroupId(task.getRecurringGroupId(), task.getExecutionTime());
+            }
+            // Osvežavamo prikaz
             loadTasks();
         });
     }
 
     private void changeTaskStatus(Task task, Task.Status newStatus) {
+        // ... (nepromenjeno)
         task.setStatus(newStatus);
         executorService.execute(() -> {
             taskDao.update(task);
             loadTasks();
         });
-        Toast.makeText(this, "Status zadatka promenjen u: " + newStatus.name(), Toast.LENGTH_SHORT).show();
     }
 
+    // --- IZMENA: Logika klika ---
     @Override
     public void onTaskClick(Task task) {
+        if (isTaskLocked(task)) {
+            Toast.makeText(this, "Završeni ili istekli zadaci se ne mogu menjati.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
         intent.putExtra("EDIT_TASK", task);
+
+        // Ako je zadatak deo serije, šaljemo datum da bi forma za izmenu znala da ponudi opciju "izmeni sve buduće"
+        if (task.getRecurringGroupId() != null) {
+            intent.putExtra("RECURRING_EDIT_DATE", task.getExecutionTime().getTime());
+        }
+
         startActivity(intent);
     }
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
+        // ... (nepromenjeno)
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(task.getExecutionTime());
@@ -173,7 +283,9 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         }
     }
 
-    // U TasksActivity.java
+    // Ostatak koda ostaje nepromenjen...
+    // awardXpForTask, updateUserStats, getXpForDifficulty, getXpForImportance,
+    // isSameDay, isSameWeek, isSameMonth
 
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
@@ -182,7 +294,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
             int xpForImportance = 0;
             String quotaMessage = "";
 
-            // --- ISPRAVKA: Dodajemo 'final' ---
             final Date referenceDate = (completedTask.getCompletionDate() == null) ? new Date() : completedTask.getCompletionDate();
             final Task.Difficulty difficulty = completedTask.getDifficulty();
             final Task.Importance importance = completedTask.getImportance();
@@ -212,7 +323,6 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
                 if (count < limit) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Bitnost! ";
             }
 
-            // Kreiramo finalne kopije za lambda izraz
             final int finalTotalXpGained = xpForDifficulty + xpForImportance;
             final String finalQuotaMessage = quotaMessage.trim();
 

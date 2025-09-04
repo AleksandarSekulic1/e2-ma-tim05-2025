@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,7 @@ public class TaskDetailActivity extends AppCompatActivity {
     private TextView textViewDetailTaskName, textViewDetailTaskDescription, textViewDetailCategory;
     private TextView textViewDetailDifficulty, textViewDetailImportance;
     private LinearLayout detailRecurringLayout, detailOneTimeLayout;
-    private TextView textViewDetailRecurringInfo, textViewDetailRecurringRange, textViewDetailExecutionDate;
+    private TextView textViewDetailRecurringInfo, textViewDetailExecutionDate;
     private Spinner spinnerStatus;
     private FloatingActionButton fabEditTask;
 
@@ -47,7 +48,6 @@ public class TaskDetailActivity extends AppCompatActivity {
     private ExecutorService executorService;
     private boolean isSpinnerInitialSetup = true;
     private SimpleDateFormat dateTimeFormatter = new SimpleDateFormat("d.M.yyyy 'u' HH:mm", Locale.getDefault());
-    private SimpleDateFormat dateFormatter = new SimpleDateFormat("d.M.yyyy", Locale.getDefault());
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -72,6 +72,9 @@ public class TaskDetailActivity extends AppCompatActivity {
         fabEditTask.setOnClickListener(v -> {
             Intent intent = new Intent(TaskDetailActivity.this, CreateEditTaskActivity.class);
             intent.putExtra("EDIT_TASK", currentTask);
+            if (currentTask.getRecurringGroupId() != null) {
+                intent.putExtra("RECURRING_EDIT_DATE", currentTask.getExecutionTime().getTime());
+            }
             startActivity(intent);
             finish();
         });
@@ -88,7 +91,7 @@ public class TaskDetailActivity extends AppCompatActivity {
         detailRecurringLayout = findViewById(R.id.detailRecurringLayout);
         detailOneTimeLayout = findViewById(R.id.detailOneTimeLayout);
         textViewDetailRecurringInfo = findViewById(R.id.textViewDetailRecurringInfo);
-        textViewDetailRecurringRange = findViewById(R.id.textViewDetailRecurringRange);
+        // Uklonili smo textViewDetailRecurringRange jer više nema smisla
         textViewDetailExecutionDate = findViewById(R.id.textViewDetailExecutionDate);
     }
 
@@ -114,25 +117,48 @@ public class TaskDetailActivity extends AppCompatActivity {
         textViewDetailDifficulty.setText(currentTask.getDifficulty().name());
         textViewDetailImportance.setText(currentTask.getImportance().name());
 
-        if (currentTask.isRecurring()) {
+        detailOneTimeLayout.setVisibility(View.VISIBLE);
+        if (currentTask.getExecutionTime() != null) {
+            textViewDetailExecutionDate.setText(dateTimeFormatter.format(currentTask.getExecutionTime()));
+        }
+
+        if (currentTask.getRecurringGroupId() != null) {
             detailRecurringLayout.setVisibility(View.VISIBLE);
-            detailOneTimeLayout.setVisibility(View.GONE);
-            String recurringInfo = "Ponavlja se svakih " + currentTask.getRepetitionInterval() + " " + (currentTask.getRepetitionUnit() == Task.RepetitionUnit.DAN ? "dana" : "nedelja");
-            textViewDetailRecurringInfo.setText(recurringInfo);
-            String rangeInfo = "Od " + dateFormatter.format(currentTask.getStartDate()) + " do " + dateFormatter.format(currentTask.getEndDate());
-            textViewDetailRecurringRange.setText(rangeInfo);
+            textViewDetailRecurringInfo.setText("Ovo je deo ponavljajućeg zadatka.");
+            findViewById(R.id.textViewDetailRecurringRange).setVisibility(View.GONE);
         } else {
             detailRecurringLayout.setVisibility(View.GONE);
-            detailOneTimeLayout.setVisibility(View.VISIBLE);
-            if (currentTask.getExecutionTime() != null) {
-                textViewDetailExecutionDate.setText(dateTimeFormatter.format(currentTask.getExecutionTime()));
-            }
+        }
+
+        // --- NOVA PROVERA ZA ZAKLJUČAVANJE ---
+        // Proveravamo da li zadatak sme da se menja i na osnovu toga prikazujemo/sakrivamo dugme
+        if (isTaskLocked(currentTask)) {
+            fabEditTask.setVisibility(View.GONE);
+            spinnerStatus.setEnabled(false); // Onemogućavamo i promenu statusa
+        } else {
+            fabEditTask.setVisibility(View.VISIBLE);
+            spinnerStatus.setEnabled(true);
         }
     }
 
+    private boolean isTaskLocked(Task task) {
+        // 1. Provera statusa
+        if (task.getStatus() == Task.Status.URADJEN ||
+                task.getStatus() == Task.Status.OTKAZAN ||
+                task.getStatus() == Task.Status.NEURADJEN) {
+            return true;
+        }
+        // 2. Provera da li je vreme izvršenja prošlo
+        if (task.getExecutionTime() != null && task.getExecutionTime().before(new Date())) {
+            return true;
+        }
+        return false;
+    }
+    
     private void setupStatusSpinner() {
         List<Task.Status> statusOptions = new ArrayList<>(Arrays.asList(Task.Status.values()));
-        if (!currentTask.isRecurring()) {
+        // Ako je zadatak jednokratan (nema grupu), uklanjamo opciju "PAUZIRAN"
+        if (currentTask.getRecurringGroupId() == null) {
             statusOptions.remove(Task.Status.PAUZIRAN);
         }
 
@@ -167,6 +193,7 @@ public class TaskDetailActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
+
 
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {

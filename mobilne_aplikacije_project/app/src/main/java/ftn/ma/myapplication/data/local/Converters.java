@@ -50,14 +50,6 @@ public class Converters {
         return value == null ? null : value.name();
     }
 
-    // Konverteri za RepetitionUnit Enum <-> String
-    @TypeConverter
-    public static Task.RepetitionUnit toRepetitionUnit(String value) {
-        return value == null ? null : Task.RepetitionUnit.valueOf(value);
-    }
+    // Uklonjen je blok za RepetitionUnit jer više ne postoji u Task modelu
 
-    @TypeConverter
-    public static String fromRepetitionUnit(Task.RepetitionUnit value) {
-        return value == null ? null : value.name();
-    }
 }

@@ -82,7 +82,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.taskCategoryTextView.setText("Bez kategorije");
         }
 
-        if (!currentTask.isRecurring() && currentTask.getExecutionTime() != null) {
+        if (currentTask.getRecurringGroupId() == null && currentTask.getExecutionTime() != null) {
             holder.textViewTaskTime.setVisibility(View.VISIBLE);
             holder.textViewTaskTime.setText("u " + timeFormatter.format(currentTask.getExecutionTime()));
         } else {

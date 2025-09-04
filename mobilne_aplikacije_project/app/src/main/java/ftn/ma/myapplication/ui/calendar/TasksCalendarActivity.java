@@ -3,12 +3,10 @@ package ftn.ma.myapplication.ui.calendar;
 import android.os.Bundle;
 import android.widget.CalendarView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -17,7 +15,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-
 import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.local.AppDatabase;
 import ftn.ma.myapplication.data.local.CategoryDao;
@@ -53,14 +50,18 @@ public class TasksCalendarActivity extends AppCompatActivity {
         recyclerViewTasksForDay = findViewById(R.id.recyclerViewTasksForDay);
         textViewSelectedDateTasks = findViewById(R.id.textViewSelectedDateTasks);
 
+        // Inicijalno postavljamo prazan adapter
         taskAdapter = new TaskAdapter(new ArrayList<>(), taskDao, executorService, null);
         recyclerViewTasksForDay.setAdapter(taskAdapter);
 
+        // Učitavamo sve zadatke iz baze po prvi put
         loadAllTasksFromDb();
 
+        // Listener koji se aktivira kada korisnik klikne na datum
         calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
             @Override
             public void onSelectedDayChange(@NonNull CalendarView view, int year, int month, int dayOfMonth) {
+                // Kada korisnik klikne na datum, filtriramo i prikazujemo zadatke
                 filterAndDisplayTasksForDate(year, month, dayOfMonth);
             }
         });
@@ -68,14 +69,17 @@ public class TasksCalendarActivity extends AppCompatActivity {
 
     private void loadAllTasksFromDb() {
         executorService.execute(() -> {
+            // Učitavamo sve zadatke i kategorije na pozadinskoj niti
             allTasks = taskDao.getAllTasks();
             List<Category> allCategories = categoryDao.getAllCategories();
 
+            // Povezujemo zadatke sa kategorijama radi lakšeg prikaza
             Map<Long, Category> categoryMap = allCategories.stream().collect(Collectors.toMap(Category::getId, c -> c));
             for (Task task : allTasks) {
                 task.setCategory(categoryMap.get(task.getCategoryId()));
             }
 
+            // Kada se podaci učitaju, prikazujemo zadatke za današnji dan
             runOnUiThread(() -> {
                 Calendar today = Calendar.getInstance();
                 filterAndDisplayTasksForDate(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH));
@@ -90,18 +94,17 @@ public class TasksCalendarActivity extends AppCompatActivity {
         List<Task> tasksForSelectedDate = new ArrayList<>();
         Calendar selectedCal = Calendar.getInstance();
         selectedCal.set(year, month, dayOfMonth);
-        // Nuliramo vreme da bismo poredili samo datume
-        setMidnight(selectedCal);
+        setMidnight(selectedCal); // Nuliramo vreme da bismo poredili samo datume
 
         for (Task task : allTasks) {
             if (task.isRecurring()) {
+                // Logika za proveru da li ponavljajući zadatak pada na izabrani dan
                 if (task.getStartDate() == null || task.getEndDate() == null) continue;
 
                 Calendar startCal = Calendar.getInstance();
                 startCal.setTime(task.getStartDate());
                 setMidnight(startCal);
 
-                // --- ISPRAVLJENA LINIJA KODA ---
                 Calendar endCal = Calendar.getInstance();
                 endCal.setTime(task.getEndDate());
                 setMidnight(endCal);
@@ -125,6 +128,7 @@ public class TasksCalendarActivity extends AppCompatActivity {
                     }
                 }
             } else {
+                // Logika za jednokratne zadatke
                 if (task.getExecutionTime() != null) {
                     Calendar taskCal = Calendar.getInstance();
                     taskCal.setTime(task.getExecutionTime());
@@ -135,6 +139,7 @@ public class TasksCalendarActivity extends AppCompatActivity {
             }
         }
 
+        // Ažuriramo RecyclerView sa filtriranim zadacima
         taskAdapter = new TaskAdapter(tasksForSelectedDate, taskDao, executorService, null);
         recyclerViewTasksForDay.setAdapter(taskAdapter);
     }

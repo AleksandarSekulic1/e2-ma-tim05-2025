@@ -16,13 +16,20 @@ import ftn.ma.myapplication.data.model.Category;
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
 
     private List<Category> categoryList;
+    // --- NOVO: Listener za komunikaciju sa aktivnošću ---
+    private OnCategoryListener onCategoryListener;
 
-    // Konstruktor adaptera, prima listu podataka koju treba prikazati
-    public CategoryAdapter(List<Category> categoryList) {
-        this.categoryList = categoryList;
+    // --- NOVO: Definišemo interfejs za klikove ---
+    public interface OnCategoryListener {
+        void onCategoryClick(Category category);
     }
 
-    // ViewHolder klasa - ona čuva reference na UI komponente jednog reda (item_category.xml)
+    // --- IZMENA: Konstruktor sada prima i listener ---
+    public CategoryAdapter(List<Category> categoryList, OnCategoryListener onCategoryListener) {
+        this.categoryList = categoryList;
+        this.onCategoryListener = onCategoryListener;
+    }
+
     public static class CategoryViewHolder extends RecyclerView.ViewHolder {
         public View categoryColorView;
         public TextView categoryNameTextView;
@@ -34,28 +41,29 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         }
     }
 
-    // Ova metoda se poziva kada RecyclerView treba da kreira novi ViewHolder (novi red)
     @NonNull
     @Override
     public CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Kreiramo novi View tako što "naduvavamo" (inflate) naš layout za jedan red
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_category, parent, false);
         return new CategoryViewHolder(view);
     }
 
-    // Ova metoda povezuje podatke iz liste sa UI komponentama u ViewHolder-u
     @Override
     public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position) {
-        // Uzimamo kategoriju sa određene pozicije u listi
         Category currentCategory = categoryList.get(position);
 
-        // Postavljamo podatke u UI komponente
         holder.categoryNameTextView.setText(currentCategory.getName());
         holder.categoryColorView.setBackgroundColor(currentCategory.getColor());
+
+        // --- NOVO: Postavljamo listener na ceo red ---
+        holder.itemView.setOnClickListener(v -> {
+            if (onCategoryListener != null) {
+                onCategoryListener.onCategoryClick(currentCategory);
+            }
+        });
     }
 
-    // Ova metoda vraća ukupan broj elemenata u listi
     @Override
     public int getItemCount() {
         return categoryList.size();

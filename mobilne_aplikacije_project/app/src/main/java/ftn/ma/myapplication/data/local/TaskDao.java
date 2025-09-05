@@ -39,4 +39,8 @@ public interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE executionTime >= :date")
     List<Task> getTasksCreatedAfter(Date date);
+
+    // --- NOVA METODA ZA RESET ---
+    @Query("DELETE FROM tasks")
+    void deleteAllTasks();
 }

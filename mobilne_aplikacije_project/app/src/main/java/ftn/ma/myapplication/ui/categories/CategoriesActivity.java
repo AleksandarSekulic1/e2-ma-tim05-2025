@@ -1,5 +1,6 @@
 package ftn.ma.myapplication.ui.categories;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
@@ -9,6 +10,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,6 +24,9 @@ import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.local.AppDatabase;
 import ftn.ma.myapplication.data.local.CategoryDao;
 import ftn.ma.myapplication.data.model.Category;
+import ftn.ma.myapplication.ui.ProfileActivity;
+import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
+import ftn.ma.myapplication.ui.tasks.TasksActivity;
 
 public class CategoriesActivity extends AppCompatActivity implements CategoryAdapter.OnCategoryListener {
 
@@ -54,6 +60,7 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
         loadCategories();
 
         fab.setOnClickListener(v -> showAddCategoryDialog());
+        setupBottomNavigation();
     }
 
     private void initializeColorMap() {
@@ -181,6 +188,39 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
                     Toast.makeText(this, "Boja uspešno promenjena.", Toast.LENGTH_SHORT).show();
                 }
             });
+        });
+    }
+
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        // Postavljamo da je "Zadaci" ikonica selektovana na ovom ekranu
+        bottomNav.setSelectedItemId(R.id.navigation_categories);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.navigation_categories) {
+                // Već smo na ovom ekranu, ne radi ništa
+                return true;
+            } else if (itemId == R.id.navigation_tasks) {
+                // Pokreni TasksCalendarActivity
+                startActivity(new Intent(getApplicationContext(), TasksActivity.class));
+                // Dodaj animaciju da prelaz bude lepši
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            } else if (itemId == R.id.navigation_calendar) {
+                // Pokreni CategoriesActivity
+                startActivity(new Intent(getApplicationContext(), TasksCalendarActivity.class));
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            }else if (itemId == R.id.navigation_profile) { // DODAJTE OVAJ DEO
+                startActivity(new Intent(getApplicationContext(), ProfileActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            }
+            return false;
         });
     }
 }

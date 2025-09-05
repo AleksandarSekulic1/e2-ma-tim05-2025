@@ -7,6 +7,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -26,6 +28,9 @@ import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.domain.LevelingManager;
 import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
+import ftn.ma.myapplication.ui.ProfileActivity;
+import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
+import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 import com.google.android.material.tabs.TabLayout;
@@ -68,6 +73,7 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
             Intent intent = new Intent(TasksActivity.this, CreateEditTaskActivity.class);
             startActivity(intent);
         });
+        setupBottomNavigation();
     }
 
     private void setupTabLayout() {
@@ -468,5 +474,39 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
         YearMonth month1 = YearMonth.from(date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         YearMonth month2 = YearMonth.from(date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         return month1.equals(month2);
+    }
+
+    // --- NOVA METODA ZA NAVIGACIJU ---
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        // Postavljamo da je "Zadaci" ikonica selektovana na ovom ekranu
+        bottomNav.setSelectedItemId(R.id.navigation_tasks);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.navigation_tasks) {
+                // Već smo na ovom ekranu, ne radi ništa
+                return true;
+            } else if (itemId == R.id.navigation_calendar) {
+                // Pokreni TasksCalendarActivity
+                startActivity(new Intent(getApplicationContext(), TasksCalendarActivity.class));
+                // Dodaj animaciju da prelaz bude lepši
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            } else if (itemId == R.id.navigation_categories) {
+                // Pokreni CategoriesActivity
+                startActivity(new Intent(getApplicationContext(), CategoriesActivity.class));
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            }else if (itemId == R.id.navigation_profile) { // DODAJTE OVAJ DEO
+                startActivity(new Intent(getApplicationContext(), ProfileActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            }
+            return false;
+        });
     }
 }

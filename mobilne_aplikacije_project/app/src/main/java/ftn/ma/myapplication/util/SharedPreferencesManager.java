@@ -14,6 +14,7 @@ public class SharedPreferencesManager {
     private static final String KEY_PERMANENT_PP_BONUS = "permanent_pp_bonus";
     // --- NOVI KLJUČ ---
     private static final String KEY_LAST_LEVEL_UP_DATE = "last_level_up_date";
+    private static final String KEY_BOSS_CURRENT_HP_PREFIX = "boss_current_hp_";
 
     // Metoda za čuvanje nivoa korisnika
     public static void saveUserLevel(Context context, int level) {
@@ -107,5 +108,18 @@ public class SharedPreferencesManager {
     public static long getLastLevelUpDate(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         return prefs.getLong(KEY_LAST_LEVEL_UP_DATE, 0);
+    }
+    // --- NOVE METODE ZA PAMĆENJE HP-A BOSA ---
+    public static void saveBossCurrentHp(Context context, int bossLevel, int hp) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(KEY_BOSS_CURRENT_HP_PREFIX + bossLevel, hp);
+        editor.apply();
+    }
+
+    public static int getBossCurrentHp(Context context, int bossLevel) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        // Vraćamo -1 ako HP nije sačuvan, da bismo znali da treba da uzmemo max HP
+        return prefs.getInt(KEY_BOSS_CURRENT_HP_PREFIX + bossLevel, -1);
     }
 }

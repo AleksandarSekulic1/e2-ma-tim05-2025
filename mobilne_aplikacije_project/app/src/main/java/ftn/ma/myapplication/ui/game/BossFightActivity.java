@@ -79,9 +79,34 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         bossMaxHp = LevelingManager.calculateBossHpForLevel(bossLevel);
         bossCurrentHp = bossMaxHp;
 
-        calculateBaseAttackChance();
+        prepareNextFight();
     }
 
+    private void prepareNextFight() {
+        // Resetujemo promenljive za novu borbu
+        battleEnded = false;
+        attacksLeft = 5;
+
+        // Ponovo učitavamo osnovne podatke korisnika
+        int permanentBonus = SharedPreferencesManager.getPermanentPpBonus(this);
+        userPp = basePp + permanentBonus;
+
+        // Određujemo kog bosa napadamo
+        bossLevel = LevelingManager.getNextBossToFight(this, userLevel);
+        bossMaxHp = LevelingManager.calculateBossHpForLevel(bossLevel);
+
+        // --- IZMENA: Proveravamo da li bos ima sačuvan HP ---
+        int savedHp = SharedPreferencesManager.getBossCurrentHp(this, bossLevel);
+        if (savedHp != -1) {
+            bossCurrentHp = savedHp; // Ako ima, nastavljamo gde smo stali
+        } else {
+            bossCurrentHp = bossMaxHp; // Ako nema, HP je na maksimumu
+        }
+
+        // Sakrivamo UI za nagrade i prikazujemo UI za borbu
+        resetUIForBattle();
+        calculateBaseAttackChance(); // Ovo pokreće ceo lanac (dijalog -> startFight)
+    }
     private void bindViews() {
         textViewBossName = findViewById(R.id.textViewBossName);
         textViewBossHp = findViewById(R.id.textViewBossHp);
@@ -103,9 +128,13 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
 
     private void showEquipmentDialog() {
         final String[] equipmentItems = {
-                "Rukavice (+10% PP)",
-                "Štit (+10% šansa za pogodak)",
-                "Čizme (40% šansa za +1 napad)"
+                // Odeća
+                "Rukavice (+10% PP)",           // 0
+                "Štit (+10% šansa za pogodak)", // 1
+                "Čizme (40% šansa za +1 napad)",  // 2
+                // Napici (jednokratni)
+                "Napitak snage (+20% PP)",      // 3
+                "Jači napitak snage (+40% PP)"  // 4
         };
         final boolean[] selectedItems = new boolean[equipmentItems.length];
 
@@ -123,9 +152,10 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
 
     private void startFight(boolean[] selectedItems) {
         List<String> activeEquipmentNames = new ArrayList<>();
+        int temporaryPpBonusPercent = 0;
 
         if (selectedItems[0]) { // Rukavice
-            userPp = (int) (userPp * 1.10);
+            temporaryPpBonusPercent += 10;
             activeEquipmentNames.add("Rukavice");
         }
         if (selectedItems[1]) { // Štit
@@ -140,6 +170,19 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                 Toast.makeText(this, "Čizme su ti dale dodatni napad!", Toast.LENGTH_SHORT).show();
             }
             activeEquipmentNames.add("Čizme");
+        }
+        if (selectedItems[3]) { // Napitak
+            temporaryPpBonusPercent += 20;
+            activeEquipmentNames.add("Napitak snage");
+        }
+        if (selectedItems[4]) { // Jači napitak
+            temporaryPpBonusPercent += 40;
+            activeEquipmentNames.add("Jači napitak");
+        }
+
+        // Primenjujemo sve PP bonuse odjednom
+        if (temporaryPpBonusPercent > 0) {
+            userPp = userPp + (int)(userPp * (temporaryPpBonusPercent / 100.0));
         }
 
         if (!activeEquipmentNames.isEmpty()) {
@@ -183,6 +226,10 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
     protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
+        // --- NOVO: Čuvamo HP bosa ako borba nije gotova ---
+        if (!battleEnded && bossCurrentHp < bossMaxHp) {
+            SharedPreferencesManager.saveBossCurrentHp(this, bossLevel, bossCurrentHp);
+        }
     }
 
     @Override
@@ -293,6 +340,18 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                     hasArmorReward = true;
                 }
             }
+            int nextBossLevel = LevelingManager.getNextBossToFight(this, userLevel);
+            if (nextBossLevel != bossLevel) {
+                // Postoji još jedan neporažen bos! Nudimo nastavak.
+                new AlertDialog.Builder(this)
+                        .setTitle("Pobeda!")
+                        .setMessage("Pobedili ste bosa Nivoa " + bossLevel + "! Ali čeka vas još jedan...")
+                        .setPositiveButton("Nastavi borbu!", (dialog, which) -> prepareNextFight())
+                        .setNegativeButton("Nazad", (dialog, which) -> finish())
+                        .setCancelable(false)
+                        .show();
+                return; // Prekidamo dalje izvršavanje da se ne prikaže kovčeg
+            }
         } else if ((double)(bossMaxHp - bossCurrentHp) / bossMaxHp >= 0.5) { // DELIMIČNA POBEDA
             coinReward = LevelingManager.calculateCoinReward(bossLevel) / 2;
             if (new Random().nextInt(100) < 10) {
@@ -308,10 +367,8 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
             int currentCoins = SharedPreferencesManager.getUserCoins(this);
             SharedPreferencesManager.saveUserCoins(this, currentCoins + coinReward);
         }
-
         String rewardText = "Osvojili ste: " + coinReward + " novčića!";
         textViewRewards.setText(rewardText);
-
         showRewardUI(coinReward > 0, hasArmorReward, hasWeaponReward);
     }
 
@@ -359,4 +416,21 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
             public void onAnimationRepeat(@NonNull Animator animation) {}
         });
     }
+    private void resetUIForBattle() {
+        buttonAttack.setVisibility(View.VISIBLE);
+        lottieAnimationBoss.setVisibility(View.VISIBLE);
+        progressBarBossHp.setVisibility(View.VISIBLE);
+        textViewBossHp.setVisibility(View.VISIBLE);
+        textViewPlayerStats.setVisibility(View.VISIBLE);
+        textViewAttacksLeft.setVisibility(View.VISIBLE);
+        textViewAttackChance.setVisibility(View.VISIBLE);
+        textViewBossName.setVisibility(View.VISIBLE);
+
+        lottieAnimationChest.setVisibility(View.GONE);
+        textViewShake.setVisibility(View.GONE);
+        rewardsIconLayout.setVisibility(View.GONE);
+        textViewRewards.setVisibility(View.GONE);
+        textViewActiveEquipment.setVisibility(View.GONE);
+    }
+
 }

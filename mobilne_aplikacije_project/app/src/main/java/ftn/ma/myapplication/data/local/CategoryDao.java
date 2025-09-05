@@ -29,4 +29,7 @@ public interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY name ASC")
     List<Category> getAllCategories();
 
+    // --- NOVA METODA ZA RESET ---
+    @Query("DELETE FROM categories")
+    void deleteAllCategories();
 }

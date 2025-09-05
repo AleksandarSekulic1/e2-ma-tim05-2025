@@ -15,6 +15,7 @@ public class SharedPreferencesManager {
     // --- NOVI KLJUČ ---
     private static final String KEY_LAST_LEVEL_UP_DATE = "last_level_up_date";
     private static final String KEY_BOSS_CURRENT_HP_PREFIX = "boss_current_hp_";
+    private static final String KEY_IS_LOGGED_IN = "is_logged_in";
 
     // Metoda za čuvanje nivoa korisnika
     public static void saveUserLevel(Context context, int level) {
@@ -121,5 +122,31 @@ public class SharedPreferencesManager {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         // Vraćamo -1 ako HP nije sačuvan, da bismo znali da treba da uzmemo max HP
         return prefs.getInt(KEY_BOSS_CURRENT_HP_PREFIX + bossLevel, -1);
+    }
+
+    // --- NOVE METODE za status prijave ---
+    public static void setUserLoggedIn(Context context, boolean isLoggedIn) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(KEY_IS_LOGGED_IN, isLoggedIn);
+        editor.apply();
+    }
+
+    public static boolean isUserLoggedIn(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+    }
+
+    // --- NOVA METODA ZA RESET ---
+    public static void resetAllUserData(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        // Čuvamo samo login status, sve ostalo brišemo
+        boolean isLoggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+        editor.clear(); // Briše SVE podatke
+        editor.putBoolean(KEY_IS_LOGGED_IN, isLoggedIn); // Vraćamo samo login status
+
+        editor.apply();
     }
 }

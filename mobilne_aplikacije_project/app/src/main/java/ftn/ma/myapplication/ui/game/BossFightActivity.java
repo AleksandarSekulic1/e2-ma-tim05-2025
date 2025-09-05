@@ -332,6 +332,9 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
 
         if (bossCurrentHp <= 0) { // POBEDA
             SharedPreferencesManager.saveBossDefeatedStatus(this, bossLevel, true);
+            // Resetujemo sačuvan HP za ovog bosa, jer je pobeđen
+            SharedPreferencesManager.saveBossCurrentHp(this, bossLevel, -1);
+
             coinReward = LevelingManager.calculateCoinReward(bossLevel);
             if (new Random().nextInt(100) < 20) {
                 if (new Random().nextInt(100) < 5) {
@@ -340,9 +343,9 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                     hasArmorReward = true;
                 }
             }
+
             int nextBossLevel = LevelingManager.getNextBossToFight(this, userLevel);
             if (nextBossLevel != bossLevel) {
-                // Postoji još jedan neporažen bos! Nudimo nastavak.
                 new AlertDialog.Builder(this)
                         .setTitle("Pobeda!")
                         .setMessage("Pobedili ste bosa Nivoa " + bossLevel + "! Ali čeka vas još jedan...")
@@ -350,15 +353,21 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
                         .setNegativeButton("Nazad", (dialog, which) -> finish())
                         .setCancelable(false)
                         .show();
-                return; // Prekidamo dalje izvršavanje da se ne prikaže kovčeg
+                return;
             }
-        } else if ((double)(bossMaxHp - bossCurrentHp) / bossMaxHp >= 0.5) { // DELIMIČNA POBEDA
-            coinReward = LevelingManager.calculateCoinReward(bossLevel) / 2;
-            if (new Random().nextInt(100) < 10) {
-                if (new Random().nextInt(100) < 5) {
-                    hasWeaponReward = true;
-                } else {
-                    hasArmorReward = true;
+
+        } else { // PORAZ ILI DELIMIČNA POBEDA
+            // --- NOVO: Čuvamo preostali HP bosa ---
+            SharedPreferencesManager.saveBossCurrentHp(this, bossLevel, bossCurrentHp);
+
+            if ((double)(bossMaxHp - bossCurrentHp) / bossMaxHp >= 0.5) { // DELIMIČNA POBEDA
+                coinReward = LevelingManager.calculateCoinReward(bossLevel) / 2;
+                if (new Random().nextInt(100) < 10) {
+                    if (new Random().nextInt(100) < 5) {
+                        hasWeaponReward = true;
+                    } else {
+                        hasArmorReward = true;
+                    }
                 }
             }
         }
@@ -371,6 +380,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         textViewRewards.setText(rewardText);
         showRewardUI(coinReward > 0, hasArmorReward, hasWeaponReward);
     }
+
 
     private void hideBattleUI() {
         buttonAttack.setVisibility(View.GONE);

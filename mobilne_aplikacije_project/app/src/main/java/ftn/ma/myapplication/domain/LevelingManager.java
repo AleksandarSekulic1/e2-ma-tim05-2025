@@ -137,4 +137,24 @@ public class LevelingManager {
         // Zaokružiti dobijenu vrednost [cite: 144]
         return (int) Math.round(baseXp);
     }
+
+    public static String getTitleForLevel(int level) {
+        switch (level) {
+            case 1:
+                return "Početnik Istraživač"; // Primer
+            case 2:
+                return "Napredni Avanturista"; // Primer
+            case 3:
+                return "Gospodar Navika"; // Primer
+            case 4:
+                return "Legendarni Šampion"; // Primer
+            case 5:
+                return "Vrhovni Vladar"; // Primer
+            default:
+                if (level > 5) {
+                    return "Besmrtnik Nivoa " + level;
+                }
+                return "Učenik"; // Početna titula pre nivoa 1
+        }
+    }
 }

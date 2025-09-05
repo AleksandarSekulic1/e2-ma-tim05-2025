@@ -56,7 +56,8 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
     private Sensor accelerometer;
     private float lastX, lastY, lastZ;
     private long lastUpdate = 0;
-    private static final int SHAKE_THRESHOLD = 800;
+    private static final int SHAKE_THRESHOLD = 500;
+    private ProgressBar progressBarPlayerPp;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -124,6 +125,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         imageViewCoinReward = findViewById(R.id.imageViewCoinReward);
         lottieArmorReward = findViewById(R.id.lottieArmorReward);
         lottieWeaponReward = findViewById(R.id.lottieWeaponReward);
+        progressBarPlayerPp = findViewById(R.id.progressBarPlayerPp);
     }
 
     private void showEquipmentDialog() {
@@ -320,6 +322,11 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         textViewBossHp.setText(bossCurrentHp + " / " + bossMaxHp + " HP");
         progressBarBossHp.setMax(bossMaxHp);
         progressBarBossHp.setProgress(bossCurrentHp);
+
+        // --- NOVO: Ažuriramo ProgressBar za PP ---
+        // Postavljamo maksimum na snagu sledećeg bosa radi skaliranja, a progress na trenutnu snagu
+        progressBarPlayerPp.setMax(LevelingManager.calculateBossHpForLevel(bossLevel + 1));
+        progressBarPlayerPp.setProgress(userPp);
     }
 
     private void endBattle() {

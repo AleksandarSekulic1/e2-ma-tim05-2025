@@ -1,5 +1,9 @@
 package ftn.ma.myapplication.domain;
 
+import android.content.Context;
+import ftn.ma.myapplication.data.model.Task;
+import ftn.ma.myapplication.util.SharedPreferencesManager;
+
 public class LevelingManager {
 
     /**
@@ -64,5 +68,93 @@ public class LevelingManager {
             coinReward *= 1.20;
         }
         return (int) Math.round(coinReward);
+    }
+
+    public static int getNextBossToFight(Context context, int currentUserLevel) {
+        // Borba se dešava nakon level up-a, tako da je minimalni nivo korisnika 2.
+        if (currentUserLevel <= 1) {
+            // Vraćamo 1 kao podrazumevanu vrednost u slučaju greške
+            return 1;
+        }
+
+        // Proveravamo sve prethodne nivoe, počevši od nivoa 1
+        for (int level = 1; level < currentUserLevel; level++) {
+            if (!SharedPreferencesManager.isBossDefeated(context, level)) {
+                // Pronašli smo prvog neporaženog bosa, njega treba napasti!
+                return level;
+            }
+        }
+
+        // Ako su svi prethodni bosovi pobeđeni, borimo se sa bosom poslednjeg završenog nivoa.
+        // Npr. ako je korisnik nivo 3, poslednji završeni je nivo 2.
+        return currentUserLevel - 1;
+    }
+
+    /**
+     * Računa XP vrednost za Težinu zadatka na osnovu nivoa korisnika.
+     * @param difficulty Težina zadatka.
+     * @param userLevel Trenutni nivo korisnika.
+     * @return Izračunata XP vrednost.
+     */
+    public static int getDynamicXpForDifficulty(Task.Difficulty difficulty, int userLevel) {
+        double baseXp;
+        switch (difficulty) {
+            case VEOMA_LAK: baseXp = 1; break;
+            case LAK:       baseXp = 3; break;
+            case TEZAK:     baseXp = 7; break;
+            case EKSTREMNO_TEZAK: baseXp = 20; break;
+            default: return 0;
+        }
+
+        // Formula se primenjuje za svaki nivo IZNAD prvog
+        for (int i = 1; i < userLevel; i++) {
+            baseXp = baseXp + baseXp / 2;
+        }
+        return (int) Math.round(baseXp);
+    }
+
+    /**
+     * Računa XP vrednost za Bitnost zadatka na osnovu nivoa korisnika.
+     * @param importance Bitnost zadatka.
+     * @param userLevel Trenutni nivo korisnika.
+     * @return Izračunata XP vrednost.
+     */
+    public static int getDynamicXpForImportance(Task.Importance importance, int userLevel) {
+        double baseXp;
+        switch (importance) {
+            case NORMALAN:        baseXp = 1; break;
+            case VAZAN:           baseXp = 3; break;
+            case EKSTREMNO_VAZAN: baseXp = 10; break;
+            case SPECIJALAN:      baseXp = 100; break;
+            default: return 0;
+        }
+
+        // Formula: XP bitnosti za prethodni nivo + XP bitnosti za prethodni nivo / 2 [cite: 143]
+        // Primenjuje se za svaki nivo IZNAD prvog
+        for (int i = 1; i < userLevel; i++) {
+            baseXp = baseXp + baseXp / 2;
+        }
+        // Zaokružiti dobijenu vrednost [cite: 144]
+        return (int) Math.round(baseXp);
+    }
+
+    public static String getTitleForLevel(int level) {
+        switch (level) {
+            case 1:
+                return "Početnik Istraživač"; // Primer
+            case 2:
+                return "Napredni Avanturista"; // Primer
+            case 3:
+                return "Gospodar Navika"; // Primer
+            case 4:
+                return "Legendarni Šampion"; // Primer
+            case 5:
+                return "Vrhovni Vladar"; // Primer
+            default:
+                if (level > 5) {
+                    return "Besmrtnik Nivoa " + level;
+                }
+                return "Učenik"; // Početna titula pre nivoa 1
+        }
     }
 }

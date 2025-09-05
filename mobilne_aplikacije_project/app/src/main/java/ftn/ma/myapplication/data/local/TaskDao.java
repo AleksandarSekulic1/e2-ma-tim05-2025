@@ -36,4 +36,7 @@ public interface TaskDao {
     // --- NOVA POMOĆNA METODA za pronalaženje svih zadataka iz iste serije ---
     @Query("SELECT * FROM tasks WHERE recurringGroupId = :groupId")
     List<Task> findByGroupId(long groupId);
+
+    @Query("SELECT * FROM tasks WHERE executionTime >= :date")
+    List<Task> getTasksCreatedAfter(Date date);
 }

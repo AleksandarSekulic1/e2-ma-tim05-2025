@@ -196,37 +196,65 @@ public class TaskDetailActivity extends AppCompatActivity {
 
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
-            List<Task> allTasks = taskDao.getAllTasks();
+            int userLevel = SharedPreferencesManager.getUserLevel(this);
+            // Dobavljamo SVE zadatke koji su ikada označeni kao URAĐENI
+            List<Task> allCompletedTasks = taskDao.getAllTasks().stream()
+                    .filter(t -> t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null)
+                    .collect(Collectors.toList());
+
             int xpForDifficulty = 0;
             int xpForImportance = 0;
             String quotaMessage = "";
 
-            final Date referenceDate = (completedTask.getCompletionDate() == null) ? new Date() : completedTask.getCompletionDate();
+            final Date completionDate = completedTask.getCompletionDate();
             final Task.Difficulty difficulty = completedTask.getDifficulty();
             final Task.Importance importance = completedTask.getImportance();
 
-            int difficultyBaseXp = getXpForDifficulty(difficulty);
-            if (difficulty == Task.Difficulty.EKSTREMNO_TEZAK) {
-                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameWeek(t.getCompletionDate(), referenceDate) && t.getDifficulty() == difficulty).count();
+            // --- Provera kvote za Težinu ---
+            int difficultyBaseXp = LevelingManager.getDynamicXpForDifficulty(difficulty, userLevel);
+            if (difficulty == Task.Difficulty.EKSTREMNO_TEZAK) { // Max 1 nedeljno
+                long count = allCompletedTasks.stream()
+                        .filter(t -> t.getId() != completedTask.getId() &&
+                                t.getDifficulty() == difficulty &&
+                                isSameWeek(t.getCompletionDate(), completionDate))
+                        .count();
                 if (count < 1) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena nedeljna kvota za Težinu! ";
-            } else {
-                List<Task> tasksCompletedOnDate = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameDay(t.getCompletionDate(), referenceDate)).collect(Collectors.toList());
-                long count = tasksCompletedOnDate.stream().filter(t -> t.getDifficulty() == difficulty).count();
-                int limit = (difficulty == Task.Difficulty.TEZAK) ? 2 : 5;
+            } else { // Dnevne kvote
+                long count = allCompletedTasks.stream()
+                        .filter(t -> t.getId() != completedTask.getId() &&
+                                t.getDifficulty() == difficulty &&
+                                isSameDay(t.getCompletionDate(), completionDate))
+                        .count();
+                int limit;
+                if (difficulty == Task.Difficulty.TEZAK) limit = 2; // Težak max 2 dnevno
+                else limit = 5; // Veoma lak i Lak max 5 dnevno
+
                 if (count < limit) xpForDifficulty = difficultyBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Težinu! ";
             }
 
-            int importanceBaseXp = getXpForImportance(importance);
-            if (importance == Task.Importance.SPECIJALAN) {
-                long count = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameMonth(t.getCompletionDate(), referenceDate) && t.getImportance() == importance).count();
+            // --- Provera kvote za Bitnost ---
+            int importanceBaseXp = LevelingManager.getDynamicXpForImportance(importance, userLevel);
+            if (importance == Task.Importance.SPECIJALAN) { // Max 1 mesečno
+                long count = allCompletedTasks.stream()
+                        .filter(t -> t.getId() != completedTask.getId() &&
+                                t.getImportance() == importance &&
+                                isSameMonth(t.getCompletionDate(), completionDate))
+                        .count();
                 if (count < 1) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena mesečna kvota za Bitnost! ";
-            } else {
-                List<Task> tasksCompletedOnDate = allTasks.stream().filter(t -> t.getId() != completedTask.getId() && t.getStatus() == Task.Status.URADJEN && t.getCompletionDate() != null && isSameDay(t.getCompletionDate(), referenceDate)).collect(Collectors.toList());
-                long count = tasksCompletedOnDate.stream().filter(t -> t.getImportance() == importance).count();
-                int limit = (importance == Task.Importance.EKSTREMNO_VAZAN) ? 2 : 5;
+            } else { // Dnevne kvote
+                long count = allCompletedTasks.stream()
+                        .filter(t -> t.getId() != completedTask.getId() &&
+                                t.getImportance() == importance &&
+                                isSameDay(t.getCompletionDate(), completionDate))
+                        .count();
+                int limit;
+                if (importance == Task.Importance.EKSTREMNO_VAZAN) limit = 2; // Ekstremno važan max 2 dnevno
+                else limit = 5; // Normalan i Važan max 5 dnevno
+
                 if (count < limit) xpForImportance = importanceBaseXp; else quotaMessage += "Ispunjena dnevna kvota za Bitnost! ";
             }
 
+            // Ostatak metode je isti...
             final int finalTotalXpGained = xpForDifficulty + xpForImportance;
             final String finalQuotaMessage = quotaMessage.trim();
 
@@ -239,7 +267,9 @@ public class TaskDetailActivity extends AppCompatActivity {
                 }
             });
 
-            completedTask.setXpAwarded(true);
+            if (finalTotalXpGained > 0) {
+                completedTask.setXpAwarded(true);
+            }
             taskDao.update(completedTask);
         });
     }
@@ -261,38 +291,25 @@ public class TaskDetailActivity extends AppCompatActivity {
         }
 
         if (leveledUp) {
-            SharedPreferencesManager.saveUserLevel(this, currentLevel);
-            int newPp = LevelingManager.calculateTotalPpForLevel(currentLevel);
-            SharedPreferencesManager.saveUserPp(this, newPp);
+            // Prvo, izračunavamo snagu za borbu, a to je snaga PRETHODNOG nivoa
+            int previousLevel = currentLevel - 1;
+            int ppForFight = LevelingManager.calculateTotalPpForLevel(previousLevel);
+
+            // Zatim, izračunavamo i čuvamo NOVU snagu koju će korisnik imati NAKON borbe
+            int newPpForNextStage = LevelingManager.calculateTotalPpForLevel(currentLevel);
+            SharedPreferencesManager.saveUserPp(this, newPpForNextStage);
+            SharedPreferencesManager.saveUserLevel(this, currentLevel); // Čuvamo i novi nivo
+
             Toast.makeText(this, "ČESTITAMO! Prešli ste na NIVO " + currentLevel + "!", Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(this, BossFightActivity.class);
-            intent.putExtra("USER_LEVEL", currentLevel);
-            intent.putExtra("USER_PP", newPp);
+
+            // Pokrećemo borbu
+            Intent intent = new Intent(TaskDetailActivity.this, BossFightActivity.class);
+            intent.putExtra("USER_LEVEL", currentLevel);    // Prosleđujemo novi nivo
+            intent.putExtra("USER_PP", ppForFight);       // ALI prosleđujemo STARU snagu za borbu
             startActivity(intent);
         }
     }
 
-    private int getXpForDifficulty(Task.Difficulty difficulty) {
-        if (difficulty == null) return 0;
-        switch (difficulty) {
-            case VEOMA_LAK: return 1;
-            case LAK: return 3;
-            case TEZAK: return 7;
-            case EKSTREMNO_TEZAK: return 20;
-            default: return 0;
-        }
-    }
-
-    private int getXpForImportance(Task.Importance importance) {
-        if (importance == null) return 0;
-        switch (importance) {
-            case NORMALAN: return 1;
-            case VAZAN: return 3;
-            case EKSTREMNO_VAZAN: return 10;
-            case SPECIJALAN: return 100;
-            default: return 0;
-        }
-    }
 
     private boolean isSameDay(Date date1, Date date2) {
         if (date1 == null || date2 == null) return false;

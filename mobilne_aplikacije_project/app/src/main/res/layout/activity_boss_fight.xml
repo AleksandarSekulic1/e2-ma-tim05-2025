@@ -16,7 +16,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Bos Nivo 2" />
+        tools:text="Bos Nivo 1" />
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieAnimationBoss"
@@ -28,7 +28,7 @@
         app:layout_constraintTop_toBottomOf="@id/textViewBossName"
         app:lottie_autoPlay="true"
         app:lottie_loop="true"
-        app:lottie_fileName="boss_monster.json" />
+        tools:lottie_fileName="boss_monster.json" />
 
     <ProgressBar
         android:id="@+id/progressBarBossHp"
@@ -36,12 +36,12 @@
         android:layout_width="0dp"
         android:layout_height="24dp"
         android:layout_marginTop="16dp"
-        android:max="500"
-        android:progress="350"
         android:progressTint="@android:color/holo_red_dark"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lottieAnimationBoss"/>
+        app:layout_constraintTop_toBottomOf="@id/lottieAnimationBoss"
+        tools:max="200"
+        tools:progress="200" />
 
     <TextView
         android:id="@+id/textViewBossHp"
@@ -51,7 +51,7 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/progressBarBossHp"
         app:layout_constraintTop_toBottomOf="@id/progressBarBossHp"
-        tools:text="350 / 500 HP" />
+        tools:text="200 / 200 HP" />
 
     <Button
         android:id="@+id/buttonAttack"
@@ -68,11 +68,24 @@
         android:id="@+id/textViewPlayerStats"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="4dp"
         android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@id/progressBarPlayerPp"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="Tvoja snaga (PP): 40" />
+
+    <ProgressBar
+        android:id="@+id/progressBarPlayerPp"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="18dp"
+        android:layout_marginBottom="16dp"
+        android:progressTint="@android:color/holo_blue_light"
         app:layout_constraintBottom_toTopOf="@id/textViewAttackChance"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Tvoja snaga (PP): 70" />
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:max="100"
+        tools:progress="40" />
 
     <TextView
         android:id="@+id/textViewAttacksLeft"
@@ -87,37 +100,100 @@
         android:id="@+id/textViewAttackChance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:textSize="16sp"
-        android:layout_marginBottom="24dp"
-        app:layout_constraintBottom_toTopOf="@id/buttonAttack"
+        app:layout_constraintBottom_toTopOf="@id/textViewActiveEquipment"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Šansa za pogodak: 100%" />
+        tools:text="Šansa za pogodak: 75%" />
+
+    <TextView
+        android:id="@+id/textViewActiveEquipment"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:textAlignment="center"
+        android:textColor="?attr/colorPrimary"
+        android:textStyle="italic"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/buttonAttack"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="🧤Aktivno: Rukavice, Štit"
+        tools:visibility="visible" />
+
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieAnimationChest"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        app:lottie_fileName="treasure_chest.json"
-        app:lottie_autoPlay="false"
-        app:lottie_loop="false"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:lottie_autoPlay="false"
+        app:lottie_fileName="treasure_chest.json"
+        app:lottie_loop="false"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/rewardsIconLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/lottieAnimationChest"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/imageViewCoinReward"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_coins"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieArmorReward"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="16dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="false"
+            app:lottie_fileName="armor_reward.json"
+            app:lottie_loop="true"
+            tools:visibility="visible" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieWeaponReward"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="16dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="false"
+            app:lottie_fileName="weapon_reward.json"
+            app:lottie_loop="true"
+            tools:visibility="visible" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/textViewRewards"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textAlignment="center"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textAlignment="center"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/lottieAnimationChest"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:text="Osvojili ste: 200 novčića!" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rewardsIconLayout"
+        tools:text="Osvojili ste: 200 novčića!💰"
+        tools:visibility="visible" />
 
     <TextView
         android:id="@+id/textViewShake"
@@ -127,7 +203,8 @@
         android:textSize="18sp"
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/lottieAnimationChest"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

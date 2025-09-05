@@ -68,11 +68,24 @@
         android:id="@+id/textViewPlayerStats"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="4dp"
         android:textSize="18sp"
-        app:layout_constraintBottom_toTopOf="@id/textViewAttackChance"
+        app:layout_constraintBottom_toTopOf="@id/progressBarPlayerPp"
         app:layout_constraintStart_toStartOf="parent"
         tools:text="Tvoja snaga (PP): 40" />
+
+    <ProgressBar
+        android:id="@+id/progressBarPlayerPp"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="18dp"
+        android:layout_marginBottom="16dp"
+        android:progressTint="@android:color/holo_blue_light"
+        app:layout_constraintBottom_toTopOf="@id/textViewAttackChance"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:max="100"
+        tools:progress="40" />
 
     <TextView
         android:id="@+id/textViewAttacksLeft"
@@ -105,7 +118,7 @@
         app:layout_constraintBottom_toTopOf="@id/buttonAttack"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Aktivno: Rukavice, Štit"
+        tools:text="🧤Aktivno: Rukavice, Štit"
         tools:visibility="visible" />
 
 
@@ -165,7 +178,6 @@
             app:lottie_fileName="weapon_reward.json"
             app:lottie_loop="true"
             tools:visibility="visible" />
-
     </LinearLayout>
 
     <TextView
@@ -180,7 +192,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/rewardsIconLayout"
-        tools:text="Osvojili ste: 200 novčića!"
+        tools:text="Osvojili ste: 200 novčića!💰"
         tools:visibility="visible" />
 
     <TextView

@@ -10,6 +10,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -30,10 +32,13 @@ import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.data.model.Category;
 import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.domain.LevelingManager;
+import ftn.ma.myapplication.ui.ProfileActivity;
+import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 import ftn.ma.myapplication.ui.game.BossFightActivity;
 import ftn.ma.myapplication.ui.tasks.CreateEditTaskActivity;
 import ftn.ma.myapplication.ui.tasks.TaskAdapter;
 import ftn.ma.myapplication.ui.tasks.TaskDetailActivity;
+import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class TasksCalendarActivity extends AppCompatActivity implements TaskAdapter.OnTaskListener {
@@ -73,6 +78,7 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             // Sada samo filtriramo već učitanu listu, nema potrebe za novim pozivom baze
             filterAndDisplayTasksForDate();
         });
+        setupBottomNavigation();
     }
 
     @Override
@@ -395,5 +401,38 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
         YearMonth month1 = YearMonth.from(date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         YearMonth month2 = YearMonth.from(date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         return month1.equals(month2);
+    }
+
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        // Postavljamo da je "Zadaci" ikonica selektovana na ovom ekranu
+        bottomNav.setSelectedItemId(R.id.navigation_calendar);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.navigation_calendar) {
+                // Već smo na ovom ekranu, ne radi ništa
+                return true;
+            } else if (itemId == R.id.navigation_tasks) {
+                // Pokreni TasksCalendarActivity
+                startActivity(new Intent(getApplicationContext(), TasksActivity.class));
+                // Dodaj animaciju da prelaz bude lepši
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            } else if (itemId == R.id.navigation_categories) {
+                // Pokreni CategoriesActivity
+                startActivity(new Intent(getApplicationContext(), CategoriesActivity.class));
+                overridePendingTransition(0, 0);
+                finish(); // Zatvori trenutnu aktivnost
+                return true;
+            }else if (itemId == R.id.navigation_profile) { // DODAJTE OVAJ DEO
+                startActivity(new Intent(getApplicationContext(), ProfileActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            }
+            return false;
+        });
     }
 }

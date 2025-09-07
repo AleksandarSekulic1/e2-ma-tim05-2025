@@ -144,4 +144,11 @@
         android:layout_marginTop="8dp"
         tools:listitem="@layout/item_contribution_detail"/>
 
+    <Button
+        android:id="@+id/buttonTestActionDamage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="TEST: -50 HP" />
+
 </LinearLayout>

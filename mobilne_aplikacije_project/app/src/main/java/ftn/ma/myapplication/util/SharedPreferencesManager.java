@@ -2,6 +2,7 @@ package ftn.ma.myapplication.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Pair;
 
 public class SharedPreferencesManager {
 
@@ -16,6 +17,9 @@ public class SharedPreferencesManager {
     private static final String KEY_LAST_LEVEL_UP_DATE = "last_level_up_date";
     private static final String KEY_BOSS_CURRENT_HP_PREFIX = "boss_current_hp_";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    private static final String KEY_MISSION_BOSS_HP = "mission_boss_hp";
+    private static final String KEY_MISSION_TASK_COUNT_PREFIX = "mission_task_"; // Npr. mission_task_shop_purchase
+    private static final String KEY_SIMULATED_DATE = "simulated_date";
 
     // Metoda za čuvanje nivoa korisnika
     public static void saveUserLevel(Context context, int level) {
@@ -147,6 +151,100 @@ public class SharedPreferencesManager {
         editor.clear(); // Briše SVE podatke
         editor.putBoolean(KEY_IS_LOGGED_IN, isLoggedIn); // Vraćamo samo login status
 
+        editor.apply();
+    }
+
+    // --- NOVE METODE ZA SPECIJALNU MISIJU ---
+
+    public static void saveMissionBossHp(Context context, int hp) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(KEY_MISSION_BOSS_HP, hp).apply();
+    }
+
+    public static int getMissionBossHp(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(KEY_MISSION_BOSS_HP, -1); // Vraćamo -1 ako nije postavljeno
+    }
+
+    /**
+     * Čuva napredak za specijalni zadatak, uključujući broj izvršenja i vreme.
+     * Podaci se čuvaju kao string u formatu "broj;timestamp".
+     */
+    public static void saveSpecialTaskProgress(Context context, String taskKey, int count, long timestamp) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String valueToSave = count + ";" + timestamp;
+        prefs.edit().putString(KEY_MISSION_TASK_COUNT_PREFIX + taskKey, valueToSave).apply();
+    }
+
+    /**
+     * Čita napredak za specijalni zadatak.
+     * @return Pair<Integer, Long> gde je prvi element broj, a drugi timestamp.
+     */
+    public static Pair<Integer, Long> getSpecialTaskProgress(Context context, String taskKey) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String savedValue = prefs.getString(KEY_MISSION_TASK_COUNT_PREFIX + taskKey, "0;0");
+
+        try {
+            String[] parts = savedValue.split(";");
+            int count = Integer.parseInt(parts[0]);
+            long timestamp = Long.parseLong(parts[1]);
+            return new Pair<>(count, timestamp);
+        } catch (Exception e) {
+            // U slučaju greške, vraća podrazumevane vrednosti
+            return new Pair<>(0, 0L);
+        }
+    }
+
+
+    // Metoda koja resetuje samo napredak misije
+    public static void resetMissionProgress(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        // Moramo ručno obrisati sve ključeve vezane za misiju
+        editor.remove(KEY_MISSION_BOSS_HP);
+        // Primer brisanja ključeva za specijalne zadatke (dodati sve ključeve)
+        editor.remove(KEY_MISSION_TASK_COUNT_PREFIX + "shop");
+        editor.remove(KEY_MISSION_TASK_COUNT_PREFIX + "regular_hit");
+        editor.remove(KEY_MISSION_TASK_COUNT_PREFIX + "easy_task");
+        editor.remove(KEY_MISSION_TASK_COUNT_PREFIX + "hard_task");
+        // ... itd. za sve specijalne zadatke
+
+        editor.apply();
+    }
+
+    // --- NOVE METODE ZA SIMULACIJU DATUMA ---
+
+    /**
+     * Čuva izabrani simulirani datum kao timestamp.
+     * @param context Kontekst aplikacije.
+     * @param timestamp Vreme u milisekundama za simulirani datum.
+     */
+    public static void saveSimulatedDate(Context context, long timestamp) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong(KEY_SIMULATED_DATE, timestamp);
+        editor.apply();
+    }
+
+    /**
+     * Vraća sačuvani simulirani datum.
+     * @param context Kontekst aplikacije.
+     * @return Timestamp sačuvanog datuma, ili 0L ako nije sačuvan.
+     */
+    public static long getSimulatedDate(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getLong(KEY_SIMULATED_DATE, 0L);
+    }
+
+    /**
+     * Briše sačuvani simulirani datum, vraćajući aplikaciju na korišćenje stvarnog vremena.
+     * @param context Kontekst aplikacije.
+     */
+    public static void clearSimulatedDate(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove(KEY_SIMULATED_DATE);
         editor.apply();
     }
 }

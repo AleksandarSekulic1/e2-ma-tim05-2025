@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center_horizontal"
+    tools:context=".ui.game.AllianceMissionActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Specijalna Misija"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textViewMissionBossHp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="20sp"
+        tools:text="HP Bosa: 250 / 300" />
+
+    <ProgressBar
+        android:id="@+id/progressBarMissionBoss"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_marginTop="8dp"
+        android:progressTint="@android:color/holo_purple"
+        tools:progress="83" />
+
+    <TextView
+        android:id="@+id/textViewUserContribution"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:textSize="18sp"
+        tools:text="Tvoj doprinos: 20 HP" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Akcije za testiranje"
+        android:layout_marginTop="32dp"
+        android:textStyle="bold"/>
+
+    <Button
+        android:id="@+id/buttonActionShop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Simuliraj kupovinu (2 HP)" />
+
+    <Button
+        android:id="@+id/buttonActionHardTask"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Simuliraj težak zadatak (4 HP)" />
+
+    <Button
+        android:id="@+id/buttonResetMission"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        app:backgroundTint="@android:color/holo_red_dark"
+        android:text="Resetuj Misiju" />
+
+</LinearLayout>

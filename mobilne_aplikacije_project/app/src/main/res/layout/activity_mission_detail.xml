@@ -79,37 +79,52 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tvoje dnevne akcije:"
+            android:text="Tvoje akcije:"
             android:textStyle="italic"
             android:layout_marginBottom="8dp"/>
 
         <Button
             android:id="@+id/buttonActionShop"
+            style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Widget.AppCompat.Button.Small"
-            tools:text="Kupovina (Danas: 0/5)" />
+            tools:text="Kupovina (Danas: 0/3, Uk: 0/5)" />
 
         <Button
             android:id="@+id/buttonActionHit"
+            style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Widget.AppCompat.Button.Small"
-            tools:text="Uspešan udarac (Danas: 0/10)" />
+            tools:text="Uspešan udarac (Danas: 0/3, Uk: 0/10)" />
 
         <Button
             android:id="@+id/buttonActionEasyTask"
+            style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Widget.AppCompat.Button.Small"
-            tools:text="Lak zadatak (Danas: 0/10)" />
+            tools:text="Lak zadatak (Danas: 0/3, Uk: 0/10)" />
 
         <Button
             android:id="@+id/buttonActionHardTask"
+            style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            tools:text="Težak zadatak (Danas: 0/3, Uk: 0/6)" />
+
+        <Button
+            android:id="@+id/buttonActionMessage"
             style="@style/Widget.AppCompat.Button.Small"
-            tools:text="Težak zadatak (Danas: 0/6)" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Pošalji poruku (Danas: 0/1)" />
+
+        <Button
+            android:id="@+id/buttonActionBonus"
+            style="@style/Widget.AppCompat.Button.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Bonus: Bez greške (0/1)" />
+
     </LinearLayout>
 
     <TextView

@@ -11,6 +11,10 @@ import java.util.Locale;
 public class SharedPreferencesManager {
 
     private static final String PREFS_NAME = "MyApplicationPrefs";
+    // NOVI KLJUČEVI
+    private static final String KEY_COMPLETED_MISSIONS = "completed_missions";
+    private static final String PREFIX_MISSION_REWARD_CLAIMED = "mission_reward_claimed_";
+
     private static final String KEY_USER_LEVEL = "user_level";
     private static final String KEY_USER_XP = "user_xp";
     private static final String KEY_USER_PP = "user_pp";
@@ -299,6 +303,28 @@ public class SharedPreferencesManager {
 
     public static long getLong(Context context, String key, long defaultValue) {
         return getPrefs(context).getLong(key, defaultValue);
+    }
+
+    // =================================================================================
+    // NOVE METODE ZA NAGRADE I BEDŽEVE
+    // =================================================================================
+
+    /** Čuva i čita da li je nagrada za misiju preuzeta. */
+    public static void saveMissionRewardClaimed(Context context, int missionId, boolean isClaimed) {
+        getPrefs(context).edit().putBoolean(PREFIX_MISSION_REWARD_CLAIMED + missionId, isClaimed).apply();
+    }
+
+    public static boolean isMissionRewardClaimed(Context context, int missionId) {
+        return getPrefs(context).getBoolean(PREFIX_MISSION_REWARD_CLAIMED + missionId, false);
+    }
+
+    /** Čuva i čita broj završenih misija (za bedževe). */
+    public static void saveCompletedMissionsCount(Context context, int count) {
+        getPrefs(context).edit().putInt(KEY_COMPLETED_MISSIONS, count).apply();
+    }
+
+    public static int getCompletedMissionsCount(Context context) {
+        return getPrefs(context).getInt(KEY_COMPLETED_MISSIONS, 0);
     }
 
 }

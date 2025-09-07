@@ -41,6 +41,28 @@
                 android:textSize="20sp"
                 tools:text="Ukupno XP: 1250" />
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="24dp">
+
+                <ImageView
+                    android:id="@+id/imageViewBadge"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    tools:src="@drawable/badge_gold" />
+
+                <TextView
+                    android:id="@+id/textViewBadgeCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textStyle="bold"
+                    tools:text="Uspešne misije: 12" />
+
+            </LinearLayout>
             <Button
                 android:id="@+id/buttonAllianceMission"
                 android:layout_width="match_parent"

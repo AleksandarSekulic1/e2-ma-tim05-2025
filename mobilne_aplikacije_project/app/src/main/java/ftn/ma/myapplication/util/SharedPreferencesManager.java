@@ -33,6 +33,9 @@ public class SharedPreferencesManager {
     private static final String PREFIX_MISSION_EXPIRED = "mission_expired_"; // NOVO
     private static final String PREFIX_MISSION_ACTION_COUNT = "mission_action_count_"; // NOVO
     private static final String KEY_ACTIVE_MISSION_ID = "active_mission_id"; // NOVO
+    private static final String PREFIX_MISSION_ACTION_COUNT_DAILY = "mission_action_daily_"; // Za dnevne
+    private static final String PREFIX_MISSION_ACTION_COUNT_TOTAL = "mission_action_total_"; // Za ukupne
+
 
     private static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -247,15 +250,29 @@ public class SharedPreferencesManager {
     }
 
     /** Čuva i čita broj izvršenja akcije za određeni dan. */
-    public static void saveDailyActionCount(Context context, int missionId, String actionKey, long date, int count) {
+    public static void saveDailyActionCount(Context context, int missionId, String memberName, String actionKey, long date, int count) {
         String dateString = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date(date));
-        String key = PREFIX_MISSION_ACTION_COUNT + missionId + "_" + actionKey + "_" + dateString;
+        String key = PREFIX_MISSION_ACTION_COUNT_DAILY + missionId + "_" + memberName + "_" + actionKey + "_" + dateString;
         getPrefs(context).edit().putInt(key, count).apply();
     }
 
-    public static int getDailyActionCount(Context context, int missionId, String actionKey, long date) {
+    public static int getDailyActionCount(Context context, int missionId, String memberName, String actionKey, long date) {
         String dateString = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date(date));
-        String key = PREFIX_MISSION_ACTION_COUNT + missionId + "_" + actionKey + "_" + dateString;
+        String key = PREFIX_MISSION_ACTION_COUNT_DAILY + missionId + "_" + memberName + "_" + actionKey + "_" + dateString;
+        return getPrefs(context).getInt(key, 0);
+    }
+
+    /**
+     * Čuva broj izvršenja određene akcije za određenog člana u misiji.
+     * Primer ključa: "contribution_1_student_shop"
+     */
+    public static void saveMemberActionCount(Context context, int missionId, String memberName, String actionKey, int count) {
+        String key = PREFIX_MISSION_ACTION_COUNT_TOTAL + missionId + "_" + memberName + "_" + actionKey;
+        getPrefs(context).edit().putInt(key, count).apply();
+    }
+
+    public static int getMemberActionCount(Context context, int missionId, String memberName, String actionKey) {
+        String key = PREFIX_MISSION_ACTION_COUNT_TOTAL + missionId + "_" + memberName + "_" + actionKey;
         return getPrefs(context).getInt(key, 0);
     }
 
@@ -273,6 +290,15 @@ public class SharedPreferencesManager {
 
     public static void clearSimulatedDate(Context context) {
         getPrefs(context).edit().remove(KEY_SIMULATED_DATE).apply();
+    }
+
+    // NOVO: Generičke metode koje su nedostajale
+    public static void saveLong(Context context, String key, long value) {
+        getPrefs(context).edit().putLong(key, value).apply();
+    }
+
+    public static long getLong(Context context, String key, long defaultValue) {
+        return getPrefs(context).getLong(key, defaultValue);
     }
 
 }

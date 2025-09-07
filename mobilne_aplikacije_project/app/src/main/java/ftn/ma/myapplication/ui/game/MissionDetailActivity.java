@@ -19,13 +19,16 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.model.Contribution;
 import ftn.ma.myapplication.data.model.SpecialMission;
+import ftn.ma.myapplication.util.RewardManager;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class MissionDetailActivity extends AppCompatActivity implements ContributionAdapter.OnContributionClickListener {
@@ -35,30 +38,31 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
     private static final int MAX_HITS = 10;
     private static final int MAX_EASY_TASKS_BUCKET = 10;
     private static final int MAX_HARD_TASKS = 6;
-    private static final int DAILY_ACTION_LIMIT = 3; // Dnevni limit za korisnika
+    private static final int MAX_BONUS = 1;
 
     // Konstante za štetu
     private static final int SHOP_DAMAGE = 2;
     private static final int HIT_DAMAGE = 2;
     private static final int EASY_TASK_DAMAGE = 1;
     private static final int HARD_TASK_DAMAGE = 4;
+    private static final int MESSAGE_DAMAGE = 4;
+    private static final int BONUS_DAMAGE = 10;
     private static final String REAL_USER_NAME = "Ja (student)";
 
-    // ... (sve ostale varijable ostaju iste)
     private SpecialMission mission;
     private int allianceMembers;
     private int bossMaxHp;
     private int bossCurrentHp;
     private long simulatedCurrentTime;
+
     private TextView textViewTitle, textViewStatus, textViewBossHp, textViewStartDate;
     private ProgressBar progressBarBoss;
     private EditText editTextMembers;
-    private Button buttonActionShop, buttonActionHit, buttonActionEasyTask, buttonActionHardTask;
+    private Button buttonActionShop, buttonActionHit, buttonActionEasyTask, buttonActionHardTask, buttonActionMessage, buttonActionBonus;
     private LinearLayout actionsLayout;
     private RecyclerView recyclerViewContributions;
     private ContributionAdapter contributionAdapter;
     private List<String> allMemberNames;
-
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -86,21 +90,22 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         if (mission.isActive() && !currentDayStr.equals(lastSimDayStr)) {
             List<String> fakeMembers = new ArrayList<>(allMemberNames);
             fakeMembers.remove(REAL_USER_NAME);
-            int damageByBots = FakeMemberSimulator.simulateDailyProgress(this, mission.getId(), fakeMembers, simulatedCurrentTime);
-            if (damageByBots > 0) {
-                bossCurrentHp -= damageByBots;
-                if (bossCurrentHp < 0) bossCurrentHp = 0;
-                SharedPreferencesManager.saveMissionBossHp(this, mission.getId(), bossCurrentHp);
-                Toast.makeText(this, "Članovi saveza su naneli " + damageByBots + " HP štete!", Toast.LENGTH_SHORT).show();
-            }
+
+            // ISPRAVKA: Simulator sada samo beleži akcije, ne vraća štetu
+            FakeMemberSimulator.simulateDailyProgress(this, mission.getId(), fakeMembers, simulatedCurrentTime);
             SharedPreferencesManager.saveLong(this, "last_sim_day_" + mission.getId(), simulatedCurrentTime);
         }
 
+        // Centralni obračun se poziva nakon simulacije i uvek daje tačan HP
+        recalculateBossHpFromContributions();
         checkMissionStatus();
         updateUI();
+
+        if ((!mission.isActive() || bossCurrentHp <= 0) && bossCurrentHp <= 0 && !SharedPreferencesManager.isMissionRewardClaimed(this, mission.getId())) {
+            awardMissionRewards();
+        }
     }
 
-    // bindViews, loadMissionState i checkMissionStatus ostaju isti
     private void bindViews() {
         textViewTitle = findViewById(R.id.textViewDetailMissionTitle);
         textViewStatus = findViewById(R.id.textViewMissionStatus);
@@ -112,6 +117,8 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         buttonActionHit = findViewById(R.id.buttonActionHit);
         buttonActionEasyTask = findViewById(R.id.buttonActionEasyTask);
         buttonActionHardTask = findViewById(R.id.buttonActionHardTask);
+        buttonActionMessage = findViewById(R.id.buttonActionMessage);
+        buttonActionBonus = findViewById(R.id.buttonActionBonus);
         actionsLayout = findViewById(R.id.actionsLayout);
         recyclerViewContributions = findViewById(R.id.recyclerViewContributions);
     }
@@ -121,13 +128,16 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         mission.setStartDate(SharedPreferencesManager.getMissionStartDate(this, mission.getId()));
         int activeMissionId = SharedPreferencesManager.getActiveMissionId(this);
         mission.setActive(mission.getId() == activeMissionId && !mission.hasExpired());
+
         allianceMembers = SharedPreferencesManager.getMissionAllianceMembers(this, mission.getId());
         if (allianceMembers == 0) allianceMembers = 3;
+
         allMemberNames = new ArrayList<>();
         allMemberNames.add(REAL_USER_NAME);
         for (int i = 2; i <= allianceMembers; i++) {
             allMemberNames.add("Član " + i);
         }
+
         bossMaxHp = 100 * allianceMembers;
         bossCurrentHp = SharedPreferencesManager.getMissionBossHp(this, mission.getId());
         if (bossCurrentHp == -1 || SharedPreferencesManager.getMissionMaxHp(this, mission.getId()) != bossMaxHp) {
@@ -146,11 +156,10 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
                     if (newMemberCount > 0 && newMemberCount != allianceMembers) {
                         allianceMembers = newMemberCount;
                         bossMaxHp = 100 * allianceMembers;
-                        bossCurrentHp = bossMaxHp;
                         SharedPreferencesManager.saveMissionAllianceMembers(MissionDetailActivity.this, mission.getId(), allianceMembers);
-                        SharedPreferencesManager.saveMissionBossHp(MissionDetailActivity.this, mission.getId(), bossCurrentHp);
                         SharedPreferencesManager.saveMissionMaxHp(MissionDetailActivity.this, mission.getId(), bossMaxHp);
                         loadMissionState();
+                        recalculateBossHpFromContributions();
                         updateUI();
                         Toast.makeText(MissionDetailActivity.this, "Broj članova i HP bosa su ažurirani!", Toast.LENGTH_SHORT).show();
                     }
@@ -158,10 +167,12 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
             }
         });
 
-        buttonActionShop.setOnClickListener(v -> performUserAction("shop", SHOP_DAMAGE, MAX_SHOP_ACTIONS));
-        buttonActionHit.setOnClickListener(v -> performUserAction("hit", HIT_DAMAGE, MAX_HITS));
-        buttonActionEasyTask.setOnClickListener(v -> performUserAction("easy_task", EASY_TASK_DAMAGE, MAX_EASY_TASKS_BUCKET));
-        buttonActionHardTask.setOnClickListener(v -> performUserAction("hard_task", HARD_TASK_DAMAGE, MAX_HARD_TASKS));
+        buttonActionShop.setOnClickListener(v -> performUserMissionAction("shop", SHOP_DAMAGE, MAX_SHOP_ACTIONS));
+        buttonActionHit.setOnClickListener(v -> performUserMissionAction("hit", HIT_DAMAGE, MAX_HITS));
+        buttonActionEasyTask.setOnClickListener(v -> performUserMissionAction("easy_task", EASY_TASK_DAMAGE, MAX_EASY_TASKS_BUCKET));
+        buttonActionHardTask.setOnClickListener(v -> performUserMissionAction("hard_task", HARD_TASK_DAMAGE, MAX_HARD_TASKS));
+        buttonActionBonus.setOnClickListener(v -> performUserMissionAction("bonus", BONUS_DAMAGE, MAX_BONUS));
+        buttonActionMessage.setOnClickListener(v -> performUserDailyAction("message", MESSAGE_DAMAGE, 1));
     }
 
     private void checkMissionStatus() {
@@ -169,7 +180,7 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
             mission.setActive(false);
             return;
         }
-        if (mission.isActive() && mission.isExpiredByTime(simulatedCurrentTime)) {
+        if (mission.isActive() && mission.isExpiredByTime(simulatedCurrentTime)) { // Misija traje 2 nedelje
             mission.setHasExpired(true);
             mission.setActive(false);
             SharedPreferencesManager.saveMissionExpiredStatus(this, mission.getId(), true);
@@ -177,39 +188,32 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         }
     }
 
-    // --- KLJUČNA ISPRAVKA JE U OVOJ METODI ---
-    private void performUserAction(String actionKey, int damage, int totalMaxCount) {
-        if (!mission.isActive()) {
-            Toast.makeText(this, "Misija nije aktivna!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // 1. Proveravamo i dnevnu i ukupnu kvotu
-        int dailyCount = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, simulatedCurrentTime);
+    private void performUserMissionAction(String actionKey, int damage, int totalMaxCount) {
+        if (!mission.isActive()) { Toast.makeText(this, "Misija nije aktivna!", Toast.LENGTH_SHORT).show(); return; }
         int totalCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, actionKey);
-
-        if (totalCount >= totalMaxCount) {
+        if (totalCount < totalMaxCount) {
+            totalCount++;
+            SharedPreferencesManager.saveMemberActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, totalCount);
+            recalculateBossHpFromContributions();
+            updateUI();
+            if (bossCurrentHp == 0) Toast.makeText(this, "ČESTITAMO! Bos je pobeđen!", Toast.LENGTH_LONG).show();
+        } else {
             Toast.makeText(this, "Ispunili ste ukupnu kvotu za ovu akciju.", Toast.LENGTH_SHORT).show();
-            return;
         }
-        if (dailyCount >= DAILY_ACTION_LIMIT) {
-            Toast.makeText(this, "Ispunili ste dnevnu kvotu za ovu akciju. Promenite datum.", Toast.LENGTH_SHORT).show();
-            return;
+    }
+
+    private void performUserDailyAction(String actionKey, int damage, int dailyMaxCount) {
+        if (!mission.isActive()) { Toast.makeText(this, "Misija nije aktivna!", Toast.LENGTH_SHORT).show(); return; }
+        int dailyCount = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, simulatedCurrentTime);
+        if (dailyCount < dailyMaxCount) {
+            dailyCount++;
+            SharedPreferencesManager.saveDailyActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, simulatedCurrentTime, dailyCount);
+            recalculateBossHpFromContributions();
+            updateUI();
+            if (bossCurrentHp == 0) Toast.makeText(this, "ČESTITAMO! Bos je pobeđen!", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Ispunili ste dnevnu kvotu za ovu akciju.", Toast.LENGTH_SHORT).show();
         }
-
-        // 2. Ako su obe provere prošle, izvrši akciju
-        dailyCount++;
-        totalCount++;
-        bossCurrentHp -= damage;
-        if (bossCurrentHp < 0) bossCurrentHp = 0;
-
-        // 3. Sačuvaj obe vrednosti
-        SharedPreferencesManager.saveDailyActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, simulatedCurrentTime, dailyCount);
-        SharedPreferencesManager.saveMemberActionCount(this, mission.getId(), REAL_USER_NAME, actionKey, totalCount);
-        SharedPreferencesManager.saveMissionBossHp(this, mission.getId(), bossCurrentHp);
-
-        updateUI();
-        if (bossCurrentHp == 0) Toast.makeText(this, "ČESTITAMO! Bos je pobeđen!", Toast.LENGTH_LONG).show();
     }
 
     private void updateUI() {
@@ -235,22 +239,12 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         progressBarBoss.setProgress(bossCurrentHp);
         textViewBossHp.setText(getString(R.string.mission_boss_hp_format, bossCurrentHp, bossMaxHp));
 
-        // --- POBOLJŠAN PRIKAZ NA DUGMIĆIMA ---
-        int shopDaily = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, "shop", simulatedCurrentTime);
-        int shopTotal = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "shop");
-        buttonActionShop.setText(String.format(Locale.getDefault(), "Kupovina (Danas: %d/%d, Uk: %d/%d)", shopDaily, DAILY_ACTION_LIMIT, shopTotal, MAX_SHOP_ACTIONS));
-
-        int hitDaily = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, "hit", simulatedCurrentTime);
-        int hitTotal = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "hit");
-        buttonActionHit.setText(String.format(Locale.getDefault(), "Udarac (Danas: %d/%d, Uk: %d/%d)", hitDaily, DAILY_ACTION_LIMIT, hitTotal, MAX_HITS));
-
-        int easyDaily = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, "easy_task", simulatedCurrentTime);
-        int easyTotal = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "easy_task");
-        buttonActionEasyTask.setText(String.format(Locale.getDefault(), "Lak zadatak (Danas: %d/%d, Uk: %d/%d)", easyDaily, DAILY_ACTION_LIMIT, easyTotal, MAX_EASY_TASKS_BUCKET));
-
-        int hardDaily = SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, "hard_task", simulatedCurrentTime);
-        int hardTotal = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "hard_task");
-        buttonActionHardTask.setText(String.format(Locale.getDefault(), "Težak zadatak (Danas: %d/%d, Uk: %d/%d)", hardDaily, DAILY_ACTION_LIMIT, hardTotal, MAX_HARD_TASKS));
+        buttonActionShop.setText(String.format(Locale.getDefault(), "Kupovina (Uk: %d/%d)", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "shop"), MAX_SHOP_ACTIONS));
+        buttonActionHit.setText(String.format(Locale.getDefault(), "Udarac (Uk: %d/%d)", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "hit"), MAX_HITS));
+        buttonActionEasyTask.setText(String.format(Locale.getDefault(), "Lak zadatak (Uk: %d/%d)", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "easy_task"), MAX_EASY_TASKS_BUCKET));
+        buttonActionHardTask.setText(String.format(Locale.getDefault(), "Težak zadatak (Uk: %d/%d)", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "hard_task"), MAX_HARD_TASKS));
+        buttonActionMessage.setText(String.format(Locale.getDefault(), "Pošalji poruku (Danas: %d/1)", SharedPreferencesManager.getDailyActionCount(this, mission.getId(), REAL_USER_NAME, "message", simulatedCurrentTime)));
+        buttonActionBonus.setText(String.format(Locale.getDefault(), "Bonus: Bez greške (%d/1)", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), REAL_USER_NAME, "bonus")));
 
         updateContributionsList();
     }
@@ -258,18 +252,7 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
     private void updateContributionsList() {
         List<Contribution> contributionList = new ArrayList<>();
         for (String memberName : allMemberNames) {
-            int shopCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "shop");
-            int hitCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hit");
-            int easyTaskCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "easy_task");
-            int hardTaskCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hard_task");
-
-            int totalDamage = 0;
-            totalDamage += Math.min(shopCount, MAX_SHOP_ACTIONS) * SHOP_DAMAGE;
-            totalDamage += Math.min(hitCount, MAX_HITS) * HIT_DAMAGE;
-            totalDamage += Math.min(easyTaskCount, MAX_EASY_TASKS_BUCKET) * EASY_TASK_DAMAGE;
-            totalDamage += Math.min(hardTaskCount, MAX_HARD_TASKS) * HARD_TASK_DAMAGE;
-
-            contributionList.add(new Contribution(memberName, totalDamage));
+            contributionList.add(new Contribution(memberName, calculateMemberDamage(memberName)));
         }
 
         contributionAdapter = new ContributionAdapter(contributionList, this);
@@ -277,24 +260,88 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         recyclerViewContributions.setAdapter(contributionAdapter);
     }
 
+    private int calculateMemberDamage(String memberName) {
+        int totalDamage = 0;
+        totalDamage += Math.min(SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "shop"), MAX_SHOP_ACTIONS) * SHOP_DAMAGE;
+        totalDamage += Math.min(SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hit"), MAX_HITS) * HIT_DAMAGE;
+        totalDamage += Math.min(SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "easy_task"), MAX_EASY_TASKS_BUCKET) * EASY_TASK_DAMAGE;
+        totalDamage += Math.min(SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hard_task"), MAX_HARD_TASKS) * HARD_TASK_DAMAGE;
+        totalDamage += Math.min(SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "bonus"), MAX_BONUS) * BONUS_DAMAGE;
+
+        // Računanje štete od poruka prolaskom kroz dane
+        if (mission.getStartDate() > 0) {
+            long daysBetween = TimeUnit.MILLISECONDS.toDays(simulatedCurrentTime - mission.getStartDate());
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(mission.getStartDate());
+
+            for (int i = 0; i <= daysBetween && i < 14; i++) {
+                if (i > 0) {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1);
+                }
+                if (SharedPreferencesManager.getDailyActionCount(this, mission.getId(), memberName, "message", calendar.getTimeInMillis()) > 0) {
+                    totalDamage += MESSAGE_DAMAGE;
+                }
+            }
+        }
+        return totalDamage;
+    }
+
+    private void recalculateBossHpFromContributions() {
+        int totalDamageDealt = 0;
+        for (String memberName : allMemberNames) {
+            totalDamageDealt += calculateMemberDamage(memberName);
+        }
+        bossCurrentHp = bossMaxHp - totalDamageDealt;
+        if (bossCurrentHp < 0) bossCurrentHp = 0;
+        SharedPreferencesManager.saveMissionBossHp(this, mission.getId(), bossCurrentHp);
+    }
+
     @Override
     public void onContributionLongClick(Contribution contribution) {
         String memberName = contribution.getMemberName();
         StringBuilder details = new StringBuilder();
-        int shopCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "shop");
-        int hitCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hit");
-        int easyTaskCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "easy_task");
-        int hardTaskCount = SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hard_task");
 
-        details.append(String.format(Locale.getDefault(), "Kupovine: %d/%d\n", shopCount, MAX_SHOP_ACTIONS));
-        details.append(String.format(Locale.getDefault(), "Uspešni udarci: %d/%d\n", hitCount, MAX_HITS));
-        details.append(String.format(Locale.getDefault(), "Laki zadaci (grupa): %d/%d\n", easyTaskCount, MAX_EASY_TASKS_BUCKET));
-        details.append(String.format(Locale.getDefault(), "Teški zadaci: %d/%d\n", hardTaskCount, MAX_HARD_TASKS));
+        details.append(String.format(Locale.getDefault(), "Kupovine: %d/%d\n", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "shop"), MAX_SHOP_ACTIONS));
+        details.append(String.format(Locale.getDefault(), "Uspešni udarci: %d/%d\n", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hit"), MAX_HITS));
+        details.append(String.format(Locale.getDefault(), "Laki zadaci (grupa): %d/%d\n", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "easy_task"), MAX_EASY_TASKS_BUCKET));
+        details.append(String.format(Locale.getDefault(), "Teški zadaci: %d/%d\n", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "hard_task"), MAX_HARD_TASKS));
+        details.append(String.format(Locale.getDefault(), "Bonus bez greške: %d/%d\n", SharedPreferencesManager.getMemberActionCount(this, mission.getId(), memberName, "bonus"), MAX_BONUS));
 
         new AlertDialog.Builder(this)
                 .setTitle("Detalji za: " + memberName)
                 .setMessage(details.toString())
                 .setPositiveButton("U redu", null)
+                .show();
+    }
+
+    private void awardMissionRewards() {
+        // 1. Označi da je nagrada preuzeta da se ne bi ponovo dodelila
+        SharedPreferencesManager.saveMissionRewardClaimed(this, mission.getId(), true);
+
+        // 2. Povećaj brojač završenih misija za bedž [cite: 269]
+        int currentCompleted = SharedPreferencesManager.getCompletedMissionsCount(this);
+        int newCompletedCount = currentCompleted + 1;
+        SharedPreferencesManager.saveCompletedMissionsCount(this, newCompletedCount);
+
+        // 3. Izračunaj nagradu u novčićima
+        int coinsWon = RewardManager.calculateMissionCoinReward(this);
+        // Ovde bi trebalo dodati logiku za dodavanje novčića korisniku, npr:
+        // int currentCoins = SharedPreferencesManager.getUserCoins(this);
+        // SharedPreferencesManager.saveUserCoins(this, currentCoins + coinsWon);
+
+        // 4. Pripremi poruku za prikaz
+        String rewardMessage = "Osvojili ste:\n\n" +
+                "● 1x Napitak \n" +
+                "● 1x Komad odeće \n" +
+                "● " + coinsWon + " novčića \n" +
+                "● 1x Bedž za misiju (ukupno: " + newCompletedCount + ")";
+
+        // 5. Prikaži nagrade u dijalogu
+        new AlertDialog.Builder(this)
+                .setTitle("Misija Uspešno Završena!")
+                .setMessage(rewardMessage)
+                .setPositiveButton("Sjajno!", null)
+                .setIcon(R.drawable.ic_treasure_chest) // Opciono: dodaj neku ikonicu kovčega
                 .show();
     }
 }

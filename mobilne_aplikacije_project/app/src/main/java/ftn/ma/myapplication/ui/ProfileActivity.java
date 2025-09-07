@@ -1,19 +1,21 @@
 package ftn.ma.myapplication.ui;
 
-import java.text.SimpleDateFormat; // Potreban import
-import java.util.Calendar; // Potreban import
-import java.util.Date;
-import java.util.Locale; // Potreban import
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import ftn.ma.myapplication.LoginActivity;
@@ -23,14 +25,15 @@ import ftn.ma.myapplication.data.local.CategoryDao;
 import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
 import ftn.ma.myapplication.ui.categories.CategoriesActivity;
-import ftn.ma.myapplication.ui.game.AllianceMissionActivity; // Potreban import
+import ftn.ma.myapplication.ui.game.AllianceMissionActivity;
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class ProfileActivity extends AppCompatActivity {
 
-    private TextView textViewUsername, textViewUserXp, textViewSimulatedDate;
+    private TextView textViewUsername, textViewUserXp, textViewSimulatedDate, textViewBadgeCount;
     private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate;
+    private ImageView imageViewBadge;
 
     private ExecutorService executorService;
     private TaskDao taskDao;
@@ -46,18 +49,21 @@ public class ProfileActivity extends AppCompatActivity {
         categoryDao = database.categoryDao();
         executorService = Executors.newSingleThreadExecutor();
 
+        // Povezivanje svih elemenata
         textViewUsername = findViewById(R.id.textViewUsername);
         textViewUserXp = findViewById(R.id.textViewUserXp);
         buttonLogout = findViewById(R.id.buttonLogout);
         buttonAddXp = findViewById(R.id.buttonAddXp);
         buttonResetApp = findViewById(R.id.buttonResetApp);
         buttonAllianceMission = findViewById(R.id.buttonAllianceMission);
-        // --- NOVO: Povezivanje elemenata za datum ---
         textViewSimulatedDate = findViewById(R.id.textViewSimulatedDate);
         buttonSimulateDate = findViewById(R.id.buttonSimulateDate);
         buttonResetDate = findViewById(R.id.buttonResetDate);
+        imageViewBadge = findViewById(R.id.imageViewBadge);
+        textViewBadgeCount = findViewById(R.id.textViewBadgeCount);
 
-        loadUserData();
+        // PREMEŠTENO: Poziv 'loadUserData()' je prebačen u onResume da bi se podaci uvek osvežavali.
+
         setupBottomNavigation();
 
         // Postavljanje listener-a
@@ -65,10 +71,19 @@ public class ProfileActivity extends AppCompatActivity {
         buttonAddXp.setOnClickListener(v -> add100Xp());
         buttonResetApp.setOnClickListener(v -> showResetConfirmationDialog());
         buttonAllianceMission.setOnClickListener(v -> startActivity(new Intent(this, AllianceMissionActivity.class)));
-
-        // --- NOVO: Listeneri za datum ---
         buttonSimulateDate.setOnClickListener(v -> showDatePickerDialog());
         buttonResetDate.setOnClickListener(v -> resetSimulatedDate());
+    }
+
+    /**
+     * NOVO: Metoda onResume se poziva svaki put kad se korisnik vrati na ovaj ekran.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Poziv je sada ovde da bi se podaci osvežili svaki put kad se vratiš na ekran,
+        // npr. nakon završetka misije.
+        loadUserData();
     }
 
     private void loadUserData() {
@@ -76,7 +91,41 @@ public class ProfileActivity extends AppCompatActivity {
         int currentXp = SharedPreferencesManager.getUserXp(this);
         textViewUserXp.setText("Ukupno XP: " + currentXp);
         updateSimulatedDateDisplay();
+        loadBadgeData();
     }
+
+    private void loadBadgeData() {
+        int completedMissions = SharedPreferencesManager.getCompletedMissionsCount(this);
+        textViewBadgeCount.setText("Uspešne misije: " + completedMissions);
+
+        if (completedMissions >= 10) {
+            imageViewBadge.setImageResource(R.drawable.badge_gold);
+            imageViewBadge.setVisibility(View.VISIBLE);
+        } else if (completedMissions >= 5) {
+            imageViewBadge.setImageResource(R.drawable.badge_silver);
+            imageViewBadge.setVisibility(View.VISIBLE);
+        } else if (completedMissions >= 1) {
+            imageViewBadge.setImageResource(R.drawable.badge_bronze);
+            imageViewBadge.setVisibility(View.VISIBLE);
+        } else {
+            imageViewBadge.setVisibility(View.GONE);
+            textViewBadgeCount.setText("Nema uspešnih misija");
+        }
+    }
+
+    private void resetData() {
+        executorService.execute(() -> {
+            taskDao.deleteAllTasks();
+            categoryDao.deleteAllCategories();
+            SharedPreferencesManager.resetAllUserData(this);
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Podaci su resetovani.", Toast.LENGTH_SHORT).show();
+                loadUserData();
+            });
+        });
+    }
+
+    // Ostatak koda ostaje nepromenjen...
 
     private void logout() {
         SharedPreferencesManager.setUserLoggedIn(this, false);
@@ -103,22 +152,9 @@ public class ProfileActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void resetData() {
-        executorService.execute(() -> {
-            taskDao.deleteAllTasks();
-            categoryDao.deleteAllCategories();
-            SharedPreferencesManager.resetAllUserData(this);
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Podaci su resetovani.", Toast.LENGTH_SHORT).show();
-                loadUserData();
-            });
-        });
-    }
-
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setSelectedItemId(R.id.navigation_profile);
-
         bottomNav.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.navigation_profile) {
@@ -143,33 +179,35 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    // --- NOVA METODA: Prikazuje DatePickerDialog ---
     private void showDatePickerDialog() {
         Calendar calendar = Calendar.getInstance();
+        long simulatedDate = SharedPreferencesManager.getSimulatedDate(this);
+        if (simulatedDate != 0L) {
+            calendar.setTimeInMillis(simulatedDate);
+        }
+
         new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendar.set(year, month, dayOfMonth);
-            // Sačuvaj izabrani datum
             SharedPreferencesManager.saveSimulatedDate(this, calendar.getTimeInMillis());
-            // Osveži prikaz na ekranu
             updateSimulatedDateDisplay();
         }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    // --- NOVA METODA: Resetuje simulirani datum ---
     private void resetSimulatedDate() {
         SharedPreferencesManager.clearSimulatedDate(this);
         updateSimulatedDateDisplay();
         Toast.makeText(this, "Simulirani datum je resetovan.", Toast.LENGTH_SHORT).show();
     }
 
-    // --- NOVA METODA: Ažurira TextView za prikaz datuma ---
     private void updateSimulatedDateDisplay() {
         long simulatedTimestamp = SharedPreferencesManager.getSimulatedDate(this);
-        if (simulatedTimestamp == 0L) {
-            textViewSimulatedDate.setText("Simulirani datum: Nije postavljen");
+        String todayStr = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(new Date());
+        String simulatedDateStr = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(new Date(simulatedTimestamp));
+
+        if (todayStr.equals(simulatedDateStr)) {
+            textViewSimulatedDate.setText("Simulirani datum: Danas");
         } else {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
-            textViewSimulatedDate.setText("Simulirani datum: " + sdf.format(new Date(simulatedTimestamp)));
+            textViewSimulatedDate.setText("Simulirani datum: " + simulatedDateStr);
         }
     }
 }

@@ -1,3 +1,4 @@
+// FakeMemberSimulator.java
 package ftn.ma.myapplication.ui.game;
 
 import android.content.Context;
@@ -11,65 +12,49 @@ public class FakeMemberSimulator {
 
     /**
      * Simulira dnevni napredak za listu lažnih članova.
-     * @return Ukupna šteta koju su naneli svi lažni članovi u ovoj simulaciji.
+     * Metoda sada samo beleži akcije, ne vraća štetu.
      */
-    public static int simulateDailyProgress(Context context, int missionId, List<String> fakeMemberNames, long simulatedDate) {
-        int totalDamageDone = 0;
-
+    public static void simulateDailyProgress(Context context, int missionId, List<String> fakeMemberNames, long simulatedDate) {
         for (String memberName : fakeMemberNames) {
-            // Svaki član ima 70% šanse da bude aktivan tog dana
-            if (random.nextInt(100) < 70) {
-                // Slanje poruke (max 1 dnevno)
-                // Proveravamo da li je već poslao poruku ovog dana
+            // ISPRAVKA: Povećana šansa da bot bude aktivan na 90%
+            if (random.nextInt(100) < 90) {
 
-                // --- ISPRAVKA 1 ---
-                // Razdvojili smo 'memberName' i 'actionKey' ("message") u dva argumenta
-                int messageCountToday = SharedPreferencesManager.getDailyActionCount(context, missionId, memberName, "message", simulatedDate);
+                // Slanje poruke (max 1 dnevno) - šansa ostaje 90%
+                int messageDailyCount = SharedPreferencesManager.getDailyActionCount(context, missionId, memberName, "message", simulatedDate);
+                if (messageDailyCount == 0 && random.nextInt(100) < 90) {
+                    SharedPreferencesManager.saveDailyActionCount(context, missionId, memberName, "message", simulatedDate, 1);
+                }
 
-                if (messageCountToday == 0) {
-                    if (random.nextBoolean()) { // 50% šanse da pošalje poruku
-                        // --- ISPRAVKA 2 ---
-                        // I ovde smo razdvojili argumente
-                        SharedPreferencesManager.saveDailyActionCount(context, missionId, memberName, "message", simulatedDate, 1);
-                        totalDamageDone += 4;
-                    }
+                // Bonus bez greške (10% šanse po misiji)
+                int bonusCount = SharedPreferencesManager.getMemberActionCount(context, missionId, memberName, "bonus");
+                if (bonusCount == 0 && random.nextInt(100) < 10) {
+                    SharedPreferencesManager.saveMemberActionCount(context, missionId, memberName, "bonus", 1);
                 }
 
                 // Ostale akcije
-                totalDamageDone += performAction(context, missionId, memberName, "shop", 2, 5);
-                totalDamageDone += performAction(context, missionId, memberName, "hit", 2, 10);
-                totalDamageDone += performAction(context, missionId, memberName, "easy_task", 1, 10);
-                totalDamageDone += performAction(context, missionId, memberName, "hard_task", 4, 6);
+                performAction(context, missionId, memberName, "shop", 5);
+                performAction(context, missionId, memberName, "hit", 10);
+                performAction(context, missionId, memberName, "easy_task", 10);
+                performAction(context, missionId, memberName, "hard_task", 6);
             }
         }
-        return totalDamageDone;
     }
 
-    /**
-     * Pomoćna metoda koja simulira jednu vrstu akcije za jednog člana.
-     */
-    private static int performAction(Context context, int missionId, String memberName, String actionKey, int damagePerAction, int maxTotalActions) {
+    private static void performAction(Context context, int missionId, String memberName, String actionKey, int maxTotalActions) {
         int currentTotalCount = SharedPreferencesManager.getMemberActionCount(context, missionId, memberName, actionKey);
         if (currentTotalCount >= maxTotalActions) {
-            return 0; // Već je ispunio ukupnu kvotu
+            return;
         }
 
-        // Bot će pokušati da uradi 0, 1 ili 2 akcije ovog tipa danas
-        int actionsToDoToday = random.nextInt(3);
-        int damageDone = 0;
+        // ISPRAVKA: Bot će sada uraditi 1, 2 ili 3 akcije, umesto 0-2.
+        // Ovo osigurava mnogo brži napredak.
+        int actionsToDoToday = 1 + random.nextInt(3);
 
-        for (int i = 0; i < actionsToDoToday; i++) {
-            if (currentTotalCount < maxTotalActions) {
-                currentTotalCount++;
-                damageDone += damagePerAction;
-            } else {
-                break; // Prekini ako je dostigao max u toku petlje
+        if (actionsToDoToday > 0) {
+            int newTotalCount = Math.min(currentTotalCount + actionsToDoToday, maxTotalActions);
+            if (newTotalCount > currentTotalCount) {
+                SharedPreferencesManager.saveMemberActionCount(context, missionId, memberName, actionKey, newTotalCount);
             }
         }
-
-        if (damageDone > 0) {
-            SharedPreferencesManager.saveMemberActionCount(context, missionId, memberName, actionKey, currentTotalCount);
-        }
-        return damageDone;
     }
 }

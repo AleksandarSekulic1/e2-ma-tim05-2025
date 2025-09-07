@@ -2,6 +2,11 @@ package ftn.ma.myapplication.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Pair;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class SharedPreferencesManager {
 
@@ -16,6 +21,25 @@ public class SharedPreferencesManager {
     private static final String KEY_LAST_LEVEL_UP_DATE = "last_level_up_date";
     private static final String KEY_BOSS_CURRENT_HP_PREFIX = "boss_current_hp_";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    //private static final String KEY_BOSS_DEFEATED_PREFIX = "boss_defeated_";
+    //private static final String KEY_BOSS_CURRENT_HP_PREFIX = "boss_current_hp_";
+
+    // --- NOVI PREFIKSI ZA MISIJE (SA ID-JEM) ---
+    private static final String PREFIX_MISSION_MEMBERS = "mission_members_";
+    private static final String PREFIX_MISSION_HP = "mission_hp_";
+    private static final String PREFIX_MISSION_MAX_HP = "mission_max_hp_";
+    private static final String KEY_SIMULATED_DATE = "simulated_date";
+    private static final String PREFIX_MISSION_START_DATE = "mission_start_date_"; // NOVO
+    private static final String PREFIX_MISSION_EXPIRED = "mission_expired_"; // NOVO
+    private static final String PREFIX_MISSION_ACTION_COUNT = "mission_action_count_"; // NOVO
+    private static final String KEY_ACTIVE_MISSION_ID = "active_mission_id"; // NOVO
+    private static final String PREFIX_MISSION_ACTION_COUNT_DAILY = "mission_action_daily_"; // Za dnevne
+    private static final String PREFIX_MISSION_ACTION_COUNT_TOTAL = "mission_action_total_"; // Za ukupne
+
+
+    private static SharedPreferences getPrefs(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    }
 
     // Metoda za čuvanje nivoa korisnika
     public static void saveUserLevel(Context context, int level) {
@@ -149,4 +173,132 @@ public class SharedPreferencesManager {
 
         editor.apply();
     }
+
+    // --- NOVE METODE ZA SPECIJALNU MISIJU ---
+
+    // =================================================================================
+    // METODE ZA UPRAVLJANJE VIŠE SPECIJALNIH MISIJA (NOVA LOGIKA)
+    // =================================================================================
+
+    /**
+     * Čuva broj članova saveza za određenu misiju.
+     */
+    public static void saveMissionAllianceMembers(Context context, int missionId, int members) {
+        getPrefs(context).edit().putInt(PREFIX_MISSION_MEMBERS + missionId, members).apply();
+    }
+
+    /**
+     * Vraća broj članova saveza za određenu misiju. Vraća 0 ako nije sačuvano.
+     */
+    public static int getMissionAllianceMembers(Context context, int missionId) {
+        return getPrefs(context).getInt(PREFIX_MISSION_MEMBERS + missionId, 0);
+    }
+
+    /**
+     * Čuva trenutni HP bosa za određenu misiju.
+     */
+    public static void saveMissionBossHp(Context context, int missionId, int hp) {
+        getPrefs(context).edit().putInt(PREFIX_MISSION_HP + missionId, hp).apply();
+    }
+
+    /**
+     * Vraća trenutni HP bosa za određenu misiju. Vraća -1 ako nije sačuvano.
+     */
+    public static int getMissionBossHp(Context context, int missionId) {
+        return getPrefs(context).getInt(PREFIX_MISSION_HP + missionId, -1);
+    }
+
+    /**
+     * Čuva maksimalni HP bosa za određenu misiju. Korisno za praćenje promena broja članova.
+     */
+    public static void saveMissionMaxHp(Context context, int missionId, int maxHp) {
+        getPrefs(context).edit().putInt(PREFIX_MISSION_MAX_HP + missionId, maxHp).apply();
+    }
+
+    /**
+     * Vraća maksimalni HP bosa za određenu misiju. Vraća -1 ako nije sačuvano.
+     */
+    public static int getMissionMaxHp(Context context, int missionId) {
+        return getPrefs(context).getInt(PREFIX_MISSION_MAX_HP + missionId, -1);
+    }
+
+    /** Čuva ID trenutno aktivne misije. -1 znači da nijedna nije aktivna. */
+    public static void setActiveMissionId(Context context, int missionId) {
+        getPrefs(context).edit().putInt(KEY_ACTIVE_MISSION_ID, missionId).apply();
+    }
+
+    public static int getActiveMissionId(Context context) {
+        return getPrefs(context).getInt(KEY_ACTIVE_MISSION_ID, -1);
+    }
+
+    /** Čuva i čita da li je misija trajno istekla. */
+    public static void saveMissionExpiredStatus(Context context, int missionId, boolean hasExpired) {
+        getPrefs(context).edit().putBoolean(PREFIX_MISSION_EXPIRED + missionId, hasExpired).apply();
+    }
+
+    public static boolean getMissionExpiredStatus(Context context, int missionId) {
+        return getPrefs(context).getBoolean(PREFIX_MISSION_EXPIRED + missionId, false);
+    }
+
+    /** Čuva i čita datum početka za svaku misiju posebno. */
+    public static void saveMissionStartDate(Context context, int missionId, long startDate) {
+        getPrefs(context).edit().putLong(PREFIX_MISSION_START_DATE + missionId, startDate).apply();
+    }
+
+    public static long getMissionStartDate(Context context, int missionId) {
+        return getPrefs(context).getLong(PREFIX_MISSION_START_DATE + missionId, 0);
+    }
+
+    /** Čuva i čita broj izvršenja akcije za određeni dan. */
+    public static void saveDailyActionCount(Context context, int missionId, String memberName, String actionKey, long date, int count) {
+        String dateString = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date(date));
+        String key = PREFIX_MISSION_ACTION_COUNT_DAILY + missionId + "_" + memberName + "_" + actionKey + "_" + dateString;
+        getPrefs(context).edit().putInt(key, count).apply();
+    }
+
+    public static int getDailyActionCount(Context context, int missionId, String memberName, String actionKey, long date) {
+        String dateString = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date(date));
+        String key = PREFIX_MISSION_ACTION_COUNT_DAILY + missionId + "_" + memberName + "_" + actionKey + "_" + dateString;
+        return getPrefs(context).getInt(key, 0);
+    }
+
+    /**
+     * Čuva broj izvršenja određene akcije za određenog člana u misiji.
+     * Primer ključa: "contribution_1_student_shop"
+     */
+    public static void saveMemberActionCount(Context context, int missionId, String memberName, String actionKey, int count) {
+        String key = PREFIX_MISSION_ACTION_COUNT_TOTAL + missionId + "_" + memberName + "_" + actionKey;
+        getPrefs(context).edit().putInt(key, count).apply();
+    }
+
+    public static int getMemberActionCount(Context context, int missionId, String memberName, String actionKey) {
+        String key = PREFIX_MISSION_ACTION_COUNT_TOTAL + missionId + "_" + memberName + "_" + actionKey;
+        return getPrefs(context).getInt(key, 0);
+    }
+
+    // =================================================================================
+    // METODE ZA SIMULACIJU DATUMA
+    // =================================================================================
+
+    public static void saveSimulatedDate(Context context, long timestamp) {
+        getPrefs(context).edit().putLong(KEY_SIMULATED_DATE, timestamp).apply();
+    }
+
+    public static long getSimulatedDate(Context context) {
+        return getPrefs(context).getLong(KEY_SIMULATED_DATE, 0L);
+    }
+
+    public static void clearSimulatedDate(Context context) {
+        getPrefs(context).edit().remove(KEY_SIMULATED_DATE).apply();
+    }
+
+    // NOVO: Generičke metode koje su nedostajale
+    public static void saveLong(Context context, String key, long value) {
+        getPrefs(context).edit().putLong(key, value).apply();
+    }
+
+    public static long getLong(Context context, String key, long defaultValue) {
+        return getPrefs(context).getLong(key, defaultValue);
+    }
+
 }

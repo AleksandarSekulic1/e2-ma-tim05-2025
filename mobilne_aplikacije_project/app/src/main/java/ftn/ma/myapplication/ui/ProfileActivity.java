@@ -1,5 +1,10 @@
 package ftn.ma.myapplication.ui;
 
+import java.text.SimpleDateFormat; // Potreban import
+import java.util.Calendar; // Potreban import
+import java.util.Date;
+import java.util.Locale; // Potreban import
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -18,13 +23,15 @@ import ftn.ma.myapplication.data.local.CategoryDao;
 import ftn.ma.myapplication.data.local.TaskDao;
 import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
 import ftn.ma.myapplication.ui.categories.CategoriesActivity;
+import ftn.ma.myapplication.ui.game.AllianceMissionActivity; // Potreban import
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class ProfileActivity extends AppCompatActivity {
 
-    private TextView textViewUsername, textViewUserXp;
-    private Button buttonLogout, buttonAddXp, buttonResetApp;
+    private TextView textViewUsername, textViewUserXp, textViewSimulatedDate;
+    private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate;
+
     private ExecutorService executorService;
     private TaskDao taskDao;
     private CategoryDao categoryDao;
@@ -44,19 +51,31 @@ public class ProfileActivity extends AppCompatActivity {
         buttonLogout = findViewById(R.id.buttonLogout);
         buttonAddXp = findViewById(R.id.buttonAddXp);
         buttonResetApp = findViewById(R.id.buttonResetApp);
+        buttonAllianceMission = findViewById(R.id.buttonAllianceMission);
+        // --- NOVO: Povezivanje elemenata za datum ---
+        textViewSimulatedDate = findViewById(R.id.textViewSimulatedDate);
+        buttonSimulateDate = findViewById(R.id.buttonSimulateDate);
+        buttonResetDate = findViewById(R.id.buttonResetDate);
 
         loadUserData();
         setupBottomNavigation();
 
+        // Postavljanje listener-a
         buttonLogout.setOnClickListener(v -> logout());
         buttonAddXp.setOnClickListener(v -> add100Xp());
         buttonResetApp.setOnClickListener(v -> showResetConfirmationDialog());
+        buttonAllianceMission.setOnClickListener(v -> startActivity(new Intent(this, AllianceMissionActivity.class)));
+
+        // --- NOVO: Listeneri za datum ---
+        buttonSimulateDate.setOnClickListener(v -> showDatePickerDialog());
+        buttonResetDate.setOnClickListener(v -> resetSimulatedDate());
     }
 
     private void loadUserData() {
         textViewUsername.setText("Korisničko ime: student");
         int currentXp = SharedPreferencesManager.getUserXp(this);
         textViewUserXp.setText("Ukupno XP: " + currentXp);
+        updateSimulatedDateDisplay();
     }
 
     private void logout() {
@@ -71,9 +90,8 @@ public class ProfileActivity extends AppCompatActivity {
         int currentXp = SharedPreferencesManager.getUserXp(this);
         currentXp += 100;
         SharedPreferencesManager.saveUserXp(this, currentXp);
-        loadUserData(); // Osveži prikaz
+        loadUserData();
         Toast.makeText(this, "Dodato 100 XP!", Toast.LENGTH_SHORT).show();
-        // Ovde bi se mogla pozvati updateUserStats ako je prekopirana u ovu klasu
     }
 
     private void showResetConfirmationDialog() {
@@ -123,5 +141,35 @@ public class ProfileActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    // --- NOVA METODA: Prikazuje DatePickerDialog ---
+    private void showDatePickerDialog() {
+        Calendar calendar = Calendar.getInstance();
+        new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            calendar.set(year, month, dayOfMonth);
+            // Sačuvaj izabrani datum
+            SharedPreferencesManager.saveSimulatedDate(this, calendar.getTimeInMillis());
+            // Osveži prikaz na ekranu
+            updateSimulatedDateDisplay();
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    // --- NOVA METODA: Resetuje simulirani datum ---
+    private void resetSimulatedDate() {
+        SharedPreferencesManager.clearSimulatedDate(this);
+        updateSimulatedDateDisplay();
+        Toast.makeText(this, "Simulirani datum je resetovan.", Toast.LENGTH_SHORT).show();
+    }
+
+    // --- NOVA METODA: Ažurira TextView za prikaz datuma ---
+    private void updateSimulatedDateDisplay() {
+        long simulatedTimestamp = SharedPreferencesManager.getSimulatedDate(this);
+        if (simulatedTimestamp == 0L) {
+            textViewSimulatedDate.setText("Simulirani datum: Nije postavljen");
+        } else {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
+            textViewSimulatedDate.setText("Simulirani datum: " + sdf.format(new Date(simulatedTimestamp)));
+        }
     }
 }

@@ -314,23 +314,36 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
-        // Proveravamo da li je zadatak stariji od 3 dana
+        // ====================================================================================
+        // NOVO: Provera da li je zadatak zakazan u budućnosti
+        // Specifikacija: "...ne mogu se označiti kao urađeni zadaci zakazani u budućnosti."
+        // ====================================================================================
+        Date currentTime = new Date();
+        if (isChecked && task.getExecutionTime() != null && task.getExecutionTime().after(currentTime)) {
+            Toast.makeText(this, "Ne možete završiti zadatak pre njegovog vremena izvršenja.", Toast.LENGTH_SHORT).show();
+            // Vraćamo checkbox u prvobitno (nečekirano) stanje
+            adapter.notifyItemChanged(taskList.indexOf(task));
+            return;
+        }
+
+        // Provera da li je zadatak stariji od 3 dana (ova logika ostaje ista)
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, -3);
         Date gracePeriodLimit = calendar.getTime();
 
         if (task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit)) {
             Toast.makeText(this, "Ne možete menjati status zadataka starijih od 3 dana.", Toast.LENGTH_SHORT).show();
-            adapter.notifyItemChanged(taskList.indexOf(task)); // Vraćamo checkbox u prvobitno stanje
+            adapter.notifyItemChanged(taskList.indexOf(task));
             return;
         }
 
-        // Ako je unutar 3 dana, nastavljamo sa standardnom logikom
+        // Ako su sve provere prošle, nastavljamo sa standardnom logikom
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(task.getExecutionTime());
             awardXpForTask(task);
         } else {
+            // Ako korisnik odčekira zadatak, samo ažuriramo status
             executorService.execute(() -> taskDao.update(task));
         }
     }

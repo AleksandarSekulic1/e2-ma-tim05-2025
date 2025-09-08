@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.airbnb.lottie.LottieAnimationView;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -62,6 +64,7 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
     private RecyclerView recyclerViewContributions;
     private ContributionAdapter contributionAdapter;
     private List<String> allMemberNames;
+    private LottieAnimationView lottieAnimationMissionBoss;
 
 
     @Override
@@ -120,6 +123,7 @@ public class MissionDetailActivity extends AppCompatActivity implements Contribu
         actionsLayout = findViewById(R.id.actionsLayout);
         recyclerViewContributions = findViewById(R.id.recyclerViewContributions);
         buttonTestActionDamage = findViewById(R.id.buttonTestActionDamage);
+        lottieAnimationMissionBoss = findViewById(R.id.lottieAnimationMissionBoss);
     }
 
     private void loadMissionState() {

@@ -303,6 +303,7 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
             bossCurrentHp -= userPp;
             if (bossCurrentHp < 0) bossCurrentHp = 0;
             Toast.makeText(this, "Pogodak! Naneo si " + userPp + " štete!", Toast.LENGTH_SHORT).show();
+            recordSpecialMissionProgressForHit();
         } else {
             Toast.makeText(this, "Promašaj!", Toast.LENGTH_SHORT).show();
         }
@@ -448,6 +449,34 @@ public class BossFightActivity extends AppCompatActivity implements SensorEventL
         rewardsIconLayout.setVisibility(View.GONE);
         textViewRewards.setVisibility(View.GONE);
         textViewActiveEquipment.setVisibility(View.GONE);
+    }
+
+    /**
+     * NOVO: Metoda koja proverava da li je specijalna misija aktivna
+     * i beleži uspešan udarac ako jeste.
+     */
+    private void recordSpecialMissionProgressForHit() {
+        // 1. Proveri da li je ijedna misija aktivna
+        int activeMissionId = SharedPreferencesManager.getActiveMissionId(this);
+        if (activeMissionId == -1) {
+            return; // Nijedna misija nije aktivna, ne radi ništa
+        }
+
+        // 2. Proveri da li je kvota za udarce ispunjena
+        final String actionKey = "hit";
+        final String userName = "Ja (student)"; // Koristimo isti ključ kao u MissionDetailActivity
+        final int maxHits = 10; // Maksimalan broj udaraca po specifikaciji
+
+        int currentHits = SharedPreferencesManager.getMemberActionCount(this, activeMissionId, userName, actionKey);
+
+        if (currentHits < maxHits) {
+            // 3. Ako kvota nije ispunjena, povećaj je i sačuvaj
+            currentHits++;
+            SharedPreferencesManager.saveMemberActionCount(this, activeMissionId, userName, actionKey, currentHits);
+
+            // 4. Obavesti korisnika
+            Toast.makeText(this, "Napredak za specijalnu misiju zabeležen!", Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

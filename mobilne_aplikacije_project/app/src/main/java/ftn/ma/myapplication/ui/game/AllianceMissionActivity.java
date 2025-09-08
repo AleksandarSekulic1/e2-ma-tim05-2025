@@ -1,5 +1,3 @@
-// AllianceMissionActivity.java
-// AllianceMissionActivity.java
 package ftn.ma.myapplication.ui.game;
 
 import android.content.Intent;
@@ -11,6 +9,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton; // Novi import
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,32 +21,38 @@ import ftn.ma.myapplication.util.SharedPreferencesManager;
 public class AllianceMissionActivity extends AppCompatActivity implements MissionAdapter.OnMissionClickListener {
 
     private RecyclerView recyclerViewMissions;
+    private FloatingActionButton fabAddMission; // NOVO
     private MissionAdapter adapter;
-    private List<SpecialMission> missionList;
+    private List<SpecialMission> missionList = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alliance_mission);
-        setTitle("Izaberi Misiju");
+        setTitle("Specijalne Misije");
 
         recyclerViewMissions = findViewById(R.id.recyclerViewMissions);
+        fabAddMission = findViewById(R.id.fabAddMission);
+
+        // ISPRAVKA: Adapter se kreira i postavlja samo jednom, ovde u onCreate.
+        // Ovo osigurava da RecyclerView uvek ima validan adapter.
+        adapter = new MissionAdapter(missionList, this);
         recyclerViewMissions.setLayoutManager(new LinearLayoutManager(this));
+        recyclerViewMissions.setAdapter(adapter);
+
+        fabAddMission.setOnClickListener(v -> {
+            startActivity(new Intent(this, CreateMissionActivity.class));
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadMissions(); // Učitavamo misije svaki put kad se vratimo na ekran
-        if (adapter == null) {
-            adapter = new MissionAdapter(missionList, this);
-            recyclerViewMissions.setAdapter(adapter);
-        } else {
-            adapter.notifyDataSetChanged();
-        }
+        loadMissions(); // Učitaj i osveži misije svaki put
     }
 
     private void loadMissions() {
+        List<SpecialMission> loadedMissions = SharedPreferencesManager.loadMissions(this);
         if (missionList == null) {
             missionList = new ArrayList<>();
             missionList.add(new SpecialMission(1, "Napad na Zmajevu Tvrđavu", 0, false));
@@ -55,6 +60,7 @@ public class AllianceMissionActivity extends AppCompatActivity implements Missio
             missionList.add(new SpecialMission(3, "Potraga za Izgubljenim Artefaktom", 0, false));
             missionList.add(new SpecialMission(4, "Proboj kroz Mračnu Šumu", 0, false));
             missionList.add(new SpecialMission(5, "Opsada Ledene Citadele", 0, false));
+            SharedPreferencesManager.saveMissions(this, missionList);
         }
 
         int activeMissionId = SharedPreferencesManager.getActiveMissionId(this);
@@ -64,6 +70,7 @@ public class AllianceMissionActivity extends AppCompatActivity implements Missio
             mission.setStartDate(SharedPreferencesManager.getMissionStartDate(this, mission.getId()));
             mission.setActive(mission.getId() == activeMissionId && !mission.hasExpired());
         }
+        adapter.setMissions(loadedMissions);
     }
 
     @Override

@@ -337,6 +337,7 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
 
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
+            recordSpecialMissionProgressForTask(completedTask);
             int userLevel = SharedPreferencesManager.getUserLevel(this);
             // Dobavljamo SVE zadatke koji su ikada označeni kao URAĐENI
             List<Task> allCompletedTasks = taskDao.getAllTasks().stream()
@@ -508,5 +509,46 @@ public class TasksActivity extends AppCompatActivity implements TaskAdapter.OnTa
             }
             return false;
         });
+    }
+
+    /**
+     * NOVO: Metoda koja proverava da li je specijalna misija aktivna
+     * i beleži rešen zadatak ako jeste.
+     */
+    private void recordSpecialMissionProgressForTask(Task completedTask) {
+        // 1. Proveri da li je ijedna misija aktivna
+        int activeMissionId = SharedPreferencesManager.getActiveMissionId(this);
+        if (activeMissionId == -1) {
+            return; // Nijedna misija nije aktivna
+        }
+
+        final String userName = "Ja (student)";
+        String actionKey;
+        int maxCount;
+
+        // 2. Odredi u koju kategoriju spada zadatak
+        Task.Difficulty difficulty = completedTask.getDifficulty();
+        Task.Importance importance = completedTask.getImportance();
+
+        // Pravilo iz specifikacije: "Rešavanje veoma lakog, lakog, normalnog ili važnog zadatka"
+        if (difficulty == Task.Difficulty.VEOMA_LAK || difficulty == Task.Difficulty.LAK ||
+                importance == Task.Importance.NORMALAN || importance == Task.Importance.VAZAN) {
+            actionKey = "easy_task";
+            maxCount = 10;
+        } else {
+            // Svi ostali spadaju u drugu grupu: "Rešavanje ostalih zadataka"
+            actionKey = "hard_task";
+            maxCount = 6;
+        }
+
+        // 3. Proveri kvotu i ažuriraj ako je potrebno
+        int currentCount = SharedPreferencesManager.getMemberActionCount(this, activeMissionId, userName, actionKey);
+        if (currentCount < maxCount) {
+            currentCount++;
+            SharedPreferencesManager.saveMemberActionCount(this, activeMissionId, userName, actionKey, currentCount);
+
+            // 4. Obavesti korisnika (runOnUiThread je potreban jer smo u pozadinskoj niti)
+            runOnUiThread(() -> Toast.makeText(this, "Napredak za specijalnu misiju zabeležen!", Toast.LENGTH_SHORT).show());
+        }
     }
 }

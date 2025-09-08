@@ -1,147 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
     tools:context=".ui.game.MissionDetailActivity">
 
-    <TextView
-        android:id="@+id/textViewDetailMissionTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        tools:text="Napad na Zmajevu Tvrđavu" />
-
-    <TextView
-        android:id="@+id/textViewStartDate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        tools:text="Započeto: 02.09.2025" />
-
-    <TextView
-        android:id="@+id/textViewMissionStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:textSize="18sp"
-        android:textStyle="italic"
-        tools:text="Status: Aktivna" />
-
-    <TextView
-        android:id="@+id/textViewMissionBossHp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:textSize="20sp"
-        tools:text="HP Bosa: 250 / 300" />
-
-    <ProgressBar
-        android:id="@+id/progressBarMissionBoss"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="24dp"
-        android:layout_marginTop="8dp"
-        tools:progress="83" />
-
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="24dp"
-        android:gravity="center_vertical">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Broj članova saveza:" />
-        <EditText
-            android:id="@+id/editTextAllianceMembers"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:layout_marginStart="8dp"
-            tools:text="3" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/actionsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:layout_marginTop="16dp">
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/textViewDetailMissionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            tools:text="Napad na Zmajevu Tvrđavu" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieAnimationMissionBoss"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            app:lottie_autoPlay="true"
+            app:lottie_fileName="green_monster.json"
+            app:lottie_loop="true" />
+
+        <TextView
+            android:id="@+id/textViewStartDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            tools:text="Započeto: 02.09.2025" />
+
+        <TextView
+            android:id="@+id/textViewMissionStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:textSize="18sp"
+            android:textStyle="italic"
+            tools:text="Status: Aktivna" />
+
+        <TextView
+            android:id="@+id/textViewMissionBossHp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:textSize="20sp"
+            tools:text="HP Bosa: 250 / 300" />
+
+        <ProgressBar
+            android:id="@+id/progressBarMissionBoss"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:layout_marginTop="8dp"
+            tools:progress="83" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Broj članova saveza:" />
+            <EditText
+                android:id="@+id/editTextAllianceMembers"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:inputType="number"
+                tools:text="3" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tvoje akcije:"
-            android:textStyle="italic"
-            android:layout_marginBottom="8dp"/>
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"
+            android:text="Doprinos Članova (dugi klik za detalje)"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/buttonActionShop"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewContributions"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            tools:text="Kupovina (Danas: 0/3, Uk: 0/5)" />
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"
+            tools:itemCount="3"
+            tools:listitem="@layout/item_contribution_detail" />
+        <LinearLayout
+            android:id="@+id/actionsLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-        <Button
-            android:id="@+id/buttonActionHit"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:text="Uspešan udarac (Danas: 0/3, Uk: 0/10)" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Tvoje akcije:"
+                android:textStyle="italic" />
 
-        <Button
-            android:id="@+id/buttonActionEasyTask"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:text="Lak zadatak (Danas: 0/3, Uk: 0/10)" />
+            <Button
+                android:id="@+id/buttonActionShop"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Kupovina (Danas: 0/3, Uk: 0/5)" />
 
-        <Button
-            android:id="@+id/buttonActionHardTask"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:text="Težak zadatak (Danas: 0/3, Uk: 0/6)" />
+            <Button
+                android:id="@+id/buttonActionHit"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Uspešan udarac (Danas: 0/3, Uk: 0/10)" />
 
-        <Button
-            android:id="@+id/buttonActionMessage"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:text="Pošalji poruku (Danas: 0/1)" />
+            <Button
+                android:id="@+id/buttonActionEasyTask"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Lak zadatak (Danas: 0/3, Uk: 0/10)" />
 
-        <Button
-            android:id="@+id/buttonActionBonus"
-            style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:text="Bonus: Bez greške (0/1)" />
+            <Button
+                android:id="@+id/buttonActionHardTask"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Težak zadatak (Danas: 0/3, Uk: 0/6)" />
+
+            <Button
+                android:id="@+id/buttonActionMessage"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Pošalji poruku (Danas: 0/1)" />
+
+            <Button
+                android:id="@+id/buttonActionBonus"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Bonus: Bez greške (0/1)" />
+
+            <Button
+                android:id="@+id/buttonTestActionDamage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="TEST: -50 HP" />
+
+        </LinearLayout>
 
     </LinearLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Doprinos Članova (dugi klik za detalje)"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp"
-        android:layout_gravity="center_horizontal"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewContributions"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp"
-        tools:listitem="@layout/item_contribution_detail"/>
-
-</LinearLayout>
+</ScrollView>

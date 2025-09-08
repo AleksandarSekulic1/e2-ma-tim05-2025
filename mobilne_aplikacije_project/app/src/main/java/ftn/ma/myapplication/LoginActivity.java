@@ -8,6 +8,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import ftn.ma.myapplication.ui.ProfileActivity; // Menjaj po potrebi
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
 
@@ -24,12 +25,10 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // --- Provera da li je korisnik već ulogovan ---
-        // Ako jeste, odmah ga preusmeri na MainActivity i zatvori LoginActivity
+        // Provera da li je korisnik već ulogovan
         if (SharedPreferencesManager.isUserLoggedIn(this)) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-            return; // Prekida dalje izvršavanje onCreate
+            navigateToMainApp();
+            return;
         }
 
         setContentView(R.layout.activity_login);
@@ -44,15 +43,28 @@ public class LoginActivity extends AppCompatActivity {
             String password = editTextPassword.getText().toString();
 
             if (email.equals(HARDCODED_EMAIL) && password.equals(HARDCODED_PASSWORD)) {
-                // Ako su podaci tačni, sačuvaj status prijave
                 SharedPreferencesManager.setUserLoggedIn(this, true);
-
-                // Pokreni MainActivity
-                startActivity(new Intent(this, TasksActivity.class));
-                finish(); // Zatvori LoginActivity da korisnik ne može da se vrati na nju
+                navigateToMainApp();
             } else {
                 Toast.makeText(this, "Pogrešan email ili lozinka.", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Pomoćna metoda za preusmeravanje na glavni ekran aplikacije.
+     * Osigurava da je preusmeravanje uvek isto.
+     */
+    private void navigateToMainApp() {
+        // --- ISPRAVKA: Uvek preusmeravaj na TasksActivity ---
+        // Ako želiš da početni ekran bude Profil, samo promeni TasksActivity.class u ProfileActivity.class
+        Intent intent = new Intent(this, TasksActivity.class);
+
+        // Ovi flag-ovi osiguravaju da korisnik ne može da se vrati na Login ekran
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+
+        // Obavezno uništi LoginActivity
+        finish();
     }
 }

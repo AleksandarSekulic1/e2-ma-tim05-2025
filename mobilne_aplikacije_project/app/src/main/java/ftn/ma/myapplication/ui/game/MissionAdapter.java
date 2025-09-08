@@ -10,19 +10,16 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 import ftn.ma.myapplication.R;
-// Proveri da li je putanja do modela ispravna
 import ftn.ma.myapplication.data.model.SpecialMission;
 
 public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionViewHolder> {
 
     private List<SpecialMission> missions;
-    private OnMissionClickListener listener;
+    private final OnMissionClickListener listener;
 
-    // INTERFEJS JE KLJUČAN DEO KOJI SE MORA ISPRAVITI
-    // Mora da sadrži OBE metode koje tvoja aktivnost implementira.
     public interface OnMissionClickListener {
         void onMissionClick(SpecialMission mission);
-        void onMissionLongClick(SpecialMission mission); // Ova linija verovatno nedostaje kod tebe
+        void onMissionLongClick(SpecialMission mission);
     }
 
     public MissionAdapter(List<SpecialMission> missions, OnMissionClickListener listener) {
@@ -39,8 +36,7 @@ public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionV
 
     @Override
     public void onBindViewHolder(@NonNull MissionViewHolder holder, int position) {
-        SpecialMission mission = missions.get(position);
-        holder.bind(mission, listener);
+        holder.bind(missions.get(position), listener);
     }
 
     @Override
@@ -48,9 +44,15 @@ public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionV
         return missions.size();
     }
 
+    // NOVA METODA: Jasnije postavlja novu listu misija
+    public void setMissions(List<SpecialMission> newMissions) {
+        this.missions = newMissions;
+        notifyDataSetChanged();
+    }
+
     static class MissionViewHolder extends RecyclerView.ViewHolder {
-        private TextView missionTitle;
-        private ImageView missionStatus;
+        private final TextView missionTitle;
+        private final ImageView missionStatus;
 
         public MissionViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -61,7 +63,6 @@ public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionV
         public void bind(final SpecialMission mission, final OnMissionClickListener listener) {
             missionTitle.setText(mission.getTitle());
 
-            // Postavljanje ikonice na osnovu statusa
             if (mission.hasExpired()) {
                 missionStatus.setImageResource(R.drawable.ic_dot_expired);
             } else if (mission.isActive()) {
@@ -71,8 +72,6 @@ public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionV
             }
 
             itemView.setOnClickListener(v -> listener.onMissionClick(mission));
-
-            // Postavljanje listener-a za dugi klik
             itemView.setOnLongClickListener(v -> {
                 listener.onMissionLongClick(mission);
                 return true;

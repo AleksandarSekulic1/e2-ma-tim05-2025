@@ -3,10 +3,15 @@ package ftn.ma.myapplication.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Pair;
-
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import com.google.gson.Gson;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import ftn.ma.myapplication.data.model.SpecialMission;
 
 public class SharedPreferencesManager {
 
@@ -39,7 +44,7 @@ public class SharedPreferencesManager {
     private static final String KEY_ACTIVE_MISSION_ID = "active_mission_id"; // NOVO
     private static final String PREFIX_MISSION_ACTION_COUNT_DAILY = "mission_action_daily_"; // Za dnevne
     private static final String PREFIX_MISSION_ACTION_COUNT_TOTAL = "mission_action_total_"; // Za ukupne
-
+    private static final String KEY_ALL_MISSIONS = "all_special_missions";
 
     private static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -327,4 +332,19 @@ public class SharedPreferencesManager {
         return getPrefs(context).getInt(KEY_COMPLETED_MISSIONS, 0);
     }
 
+    public static void saveMissions(Context context, List<SpecialMission> missions) {
+        Gson gson = new Gson();
+        String json = gson.toJson(missions);
+        getPrefs(context).edit().putString(KEY_ALL_MISSIONS, json).apply();
+    }
+
+    public static List<SpecialMission> loadMissions(Context context) {
+        String json = getPrefs(context).getString(KEY_ALL_MISSIONS, null);
+        if (json == null) {
+            return new ArrayList<>(); // Vrati praznu listu ako ništa nije sačuvano
+        }
+        Gson gson = new Gson();
+        Type type = new TypeToken<ArrayList<SpecialMission>>() {}.getType();
+        return gson.fromJson(json, type);
+    }
 }

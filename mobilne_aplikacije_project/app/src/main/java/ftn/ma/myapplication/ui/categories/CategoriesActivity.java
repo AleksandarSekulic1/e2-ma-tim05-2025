@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
@@ -23,7 +22,9 @@ import java.util.concurrent.Executors;
 import ftn.ma.myapplication.R;
 import ftn.ma.myapplication.data.local.AppDatabase;
 import ftn.ma.myapplication.data.local.CategoryDao;
+import ftn.ma.myapplication.data.local.TaskDao; // NOVI IMPORT
 import ftn.ma.myapplication.data.model.Category;
+import ftn.ma.myapplication.data.model.Task; // NOVI IMPORT
 import ftn.ma.myapplication.ui.ProfileActivity;
 import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
@@ -34,11 +35,10 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
     private FloatingActionButton fab;
     private CategoryAdapter adapter;
     private List<Category> categoryList;
-    private AppDatabase database;
     private CategoryDao categoryDao;
+    private TaskDao taskDao; // NOVO: DAO za zadatke
     private ExecutorService executorService;
 
-    // --- NOVO: Mapa sa predefinisanim bojama ---
     private final Map<String, Integer> colorMap = new LinkedHashMap<>();
 
     @Override
@@ -46,11 +46,11 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_categories);
 
-        database = AppDatabase.getDatabase(getApplicationContext());
+        AppDatabase database = AppDatabase.getDatabase(getApplicationContext());
         categoryDao = database.categoryDao();
+        taskDao = database.taskDao(); // NOVO: Inicijalizacija TaskDao
         executorService = Executors.newSingleThreadExecutor();
 
-        // --- NOVO: Popunjavamo mapu boja ---
         initializeColorMap();
 
         recyclerView = findViewById(R.id.recyclerViewCategories);
@@ -61,6 +61,48 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
 
         fab.setOnClickListener(v -> showAddCategoryDialog());
         setupBottomNavigation();
+    }
+
+    // onCategoryClick ostaje isti
+    @Override
+    public void onCategoryClick(Category category) {
+        showEditColorDialog(category);
+    }
+
+    // --- NOVA METODA: Logika za brisanje kategorije nakon dugog klika ---
+    @Override
+    public void onCategoryLongClick(Category category) {
+        // Sve provere radimo na pozadinskoj niti
+        executorService.execute(() -> {
+            // 1. Proveri da li postoji ijedan aktivan zadatak sa ovom kategorijom
+            List<Task> activeTasksInCategory = taskDao.getActiveTasksByCategoryId(category.getId());
+
+            runOnUiThread(() -> {
+                // 2. Na osnovu rezultata, prikaži odgovarajuću poruku ili dijalog
+                if (activeTasksInCategory.isEmpty()) {
+                    // Ako nema aktivnih zadataka, pitaj korisnika za potvrdu brisanja
+                    showDeleteConfirmationDialog(category);
+                } else {
+                    // Ako ima, prikaži poruku o grešci
+                    Toast.makeText(this, "Kategorija se ne može obrisati jer postoje aktivni zadaci koji je koriste.", Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
+    private void showDeleteConfirmationDialog(Category category) {
+        new AlertDialog.Builder(this)
+                .setTitle("Obriši kategoriju")
+                .setMessage("Da li ste sigurni da želite da obrišete kategoriju '" + category.getName() + "'?")
+                .setPositiveButton("Obriši", (dialog, which) -> {
+                    // Brisanje se takođe izvršava na pozadinskoj niti
+                    executorService.execute(() -> {
+                        categoryDao.delete(category);
+                        loadCategories(); // Osveži listu nakon brisanja
+                    });
+                })
+                .setNegativeButton("Otkaži", null)
+                .show();
     }
 
     private void initializeColorMap() {
@@ -135,10 +177,6 @@ public class CategoriesActivity extends AppCompatActivity implements CategoryAda
             categoryDao.insert(newCategory);
             loadCategories();
         });
-    }
-    @Override
-    public void onCategoryClick(Category category) {
-        showEditColorDialog(category);
     }
 
     // --- IZMENA: Potpuno prerađena metoda, ne koristi spoljnu biblioteku ---

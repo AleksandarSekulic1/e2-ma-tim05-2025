@@ -43,4 +43,8 @@ public interface TaskDao {
     // --- NOVA METODA ZA RESET ---
     @Query("DELETE FROM tasks")
     void deleteAllTasks();
+
+    // NOVO: Metoda koja vraća sve AKTIVNE zadatke za određeni ID kategorije
+    @Query("SELECT * FROM tasks WHERE categoryId = :categoryId AND status = 'AKTIVAN'")
+    List<Task> getActiveTasksByCategoryId(long categoryId);
 }

@@ -246,18 +246,31 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
 
     @Override
     public void onTaskCheckedChanged(Task task, boolean isChecked) {
+        // ====================================================================================
+        // NOVO: Provera da li je zadatak zakazan u budućnosti
+        // Specifikacija: "...ne mogu se označiti kao urađeni zadaci zakazani u budućnosti."
+        // ====================================================================================
+        Date currentTime = new Date();
+        if (isChecked && task.getExecutionTime() != null && task.getExecutionTime().after(currentTime)) {
+            Toast.makeText(this, "Ne možete završiti zadatak pre njegovog vremena izvršenja.", Toast.LENGTH_SHORT).show();
+            // Koristimo notifyDataSetChanged() jer je to siguran način da se UI osveži
+            // i vrati checkbox u prvobitno stanje
+            taskAdapter.notifyDataSetChanged();
+            return;
+        }
+
+        // Provera da li je zadatak stariji od 3 dana (ova logika ostaje ista)
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, -3);
         Date gracePeriodLimit = calendar.getTime();
 
         if (task.getExecutionTime() != null && task.getExecutionTime().before(gracePeriodLimit)) {
             Toast.makeText(this, "Ne možete menjati status zadataka starijih od 3 dana.", Toast.LENGTH_SHORT).show();
-            // Vraćamo checkbox u prvobitno stanje
-            // notifyDataSetChanged je siguran način da se UI osveži
             taskAdapter.notifyDataSetChanged();
             return;
         }
 
+        // Ako su sve provere prošle, nastavljamo sa standardnom logikom
         task.setStatus(isChecked ? Task.Status.URADJEN : Task.Status.AKTIVAN);
         if (isChecked && !task.isXpAwarded()) {
             task.setCompletionDate(task.getExecutionTime());
@@ -266,6 +279,7 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
             executorService.execute(() -> taskDao.update(task));
         }
     }
+
     private void awardXpForTask(Task completedTask) {
         executorService.execute(() -> {
             int userLevel = SharedPreferencesManager.getUserLevel(this);

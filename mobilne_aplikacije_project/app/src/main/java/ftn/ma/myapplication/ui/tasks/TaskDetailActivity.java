@@ -177,6 +177,20 @@ public class TaskDetailActivity extends AppCompatActivity {
                     return;
                 }
                 Task.Status newStatus = (Task.Status) parent.getItemAtPosition(position);
+
+                // ====================================================================================
+                // NOVO: Provera da li je zadatak u budućnosti, pre bilo koje druge akcije
+                // Specifikacija: "...ne mogu se označiti kao urađeni zadaci zakazani u budućnosti."
+                // ====================================================================================
+                Date currentTime = new Date();
+                if (newStatus == Task.Status.URADJEN && currentTask.getExecutionTime() != null && currentTask.getExecutionTime().after(currentTime)) {
+                    Toast.makeText(TaskDetailActivity.this, "Ne možete završiti zadatak pre njegovog vremena izvršenja.", Toast.LENGTH_SHORT).show();
+                    // Vraćamo spinner na prethodnu vrednost da sprečimo promenu
+                    spinnerStatus.setSelection(statusAdapter.getPosition(currentTask.getStatus()));
+                    return;
+                }
+
+                // Ako je status promenjen, nastavljamo sa logikom
                 if (currentTask.getStatus() != newStatus) {
                     currentTask.setStatus(newStatus);
                     if (newStatus == Task.Status.URADJEN && !currentTask.isXpAwarded()) {

@@ -16,15 +16,14 @@ import ftn.ma.myapplication.data.model.Category;
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
 
     private List<Category> categoryList;
-    // --- NOVO: Listener za komunikaciju sa aktivnošću ---
     private OnCategoryListener onCategoryListener;
 
-    // --- NOVO: Definišemo interfejs za klikove ---
+    // --- IZMENA: Interfejs sada podržava i običan i dugi klik ---
     public interface OnCategoryListener {
         void onCategoryClick(Category category);
+        void onCategoryLongClick(Category category); // DODATO
     }
 
-    // --- IZMENA: Konstruktor sada prima i listener ---
     public CategoryAdapter(List<Category> categoryList, OnCategoryListener onCategoryListener) {
         this.categoryList = categoryList;
         this.onCategoryListener = onCategoryListener;
@@ -56,11 +55,19 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         holder.categoryNameTextView.setText(currentCategory.getName());
         holder.categoryColorView.setBackgroundColor(currentCategory.getColor());
 
-        // --- NOVO: Postavljamo listener na ceo red ---
+        // Listener za običan klik (ostaje isti)
         holder.itemView.setOnClickListener(v -> {
             if (onCategoryListener != null) {
                 onCategoryListener.onCategoryClick(currentCategory);
             }
+        });
+
+        // --- NOVO: Postavljamo listener za dugi klik ---
+        holder.itemView.setOnLongClickListener(v -> {
+            if (onCategoryListener != null) {
+                onCategoryListener.onCategoryLongClick(currentCategory);
+            }
+            return true; // Vraćamo true da označimo da je događaj obrađen
         });
     }
 

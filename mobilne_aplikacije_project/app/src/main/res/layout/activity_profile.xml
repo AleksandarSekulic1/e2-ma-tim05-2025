@@ -16,7 +16,8 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="24dp"
+            android:paddingBottom="80dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -76,6 +77,13 @@
                 android:textSize="16sp"
                 tools:text="Novčići: 0" />
 
+            <TextView
+                android:id="@+id/textViewEquipment"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Oprema: Osnovna oprema" />
+
             <ImageView
                 android:id="@+id/imageViewQr"
                 android:layout_width="96dp"
@@ -112,6 +120,12 @@
                 android:layout_marginTop="16dp"
                 android:text="Specijalna Misija Saveza" />
 
+            <Button
+                android:id="@+id/buttonChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Promeni lozinku" />
 
             <Button
                 android:id="@+id/buttonLogout"

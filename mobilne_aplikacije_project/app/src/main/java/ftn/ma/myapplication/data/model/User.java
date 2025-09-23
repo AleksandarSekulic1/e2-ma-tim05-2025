@@ -12,7 +12,8 @@ public class User {
     private int powerPoints;
     private int xp;
     private int coins;
-    // Ostali podaci: broj bedževa, lista bedževa, oprema, QR kod itd.
+    private String equipment; // Oprema koju korisnik trenutno nosi
+    // Ostali podaci: broj bedževa, lista bedževa, QR kod itd.
 
     public User(String email, String username, String passwordHash, int avatarIndex, boolean isActive, long activationExpiry) {
         this.email = email;
@@ -26,6 +27,7 @@ public class User {
         this.powerPoints = 0;
         this.xp = 0;
         this.coins = 0;
+        this.equipment = "Osnovna oprema"; // Početna oprema
     }
 
     // Getteri i setteri
@@ -40,6 +42,7 @@ public class User {
     public int getPowerPoints() { return powerPoints; }
     public int getXp() { return xp; }
     public int getCoins() { return coins; }
+    public String getEquipment() { return equipment; }
 
     public void setActive(boolean active) { isActive = active; }
     public void setActivationExpiry(long expiry) { activationExpiry = expiry; }
@@ -48,4 +51,5 @@ public class User {
     public void setPowerPoints(int pp) { this.powerPoints = pp; }
     public void setXp(int xp) { this.xp = xp; }
     public void setCoins(int coins) { this.coins = coins; }
+    public void setEquipment(String equipment) { this.equipment = equipment; }
 }

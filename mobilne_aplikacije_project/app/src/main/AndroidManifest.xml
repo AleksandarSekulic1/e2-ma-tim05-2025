@@ -40,8 +40,10 @@
         <activity android:name=".ui.game.BossFightActivity" />
         <activity android:name=".ui.calendar.TasksCalendarActivity" />
         <activity android:name=".ui.tasks.TaskDetailActivity" />
-    <activity android:name=".ui.ProfileActivity" />
-    <activity android:name=".ui.RegisterActivity" />
+        <activity android:name=".ui.ProfileActivity" />
+        <activity android:name=".ui.RegisterActivity" />
+        <activity android:name=".ui.StatisticsActivity" />
+        <activity android:name=".ui.ActivateAccountActivity" />
     </application>
 
 </manifest>

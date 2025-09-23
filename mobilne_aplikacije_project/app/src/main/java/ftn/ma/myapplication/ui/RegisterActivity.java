@@ -93,13 +93,13 @@ public class RegisterActivity extends AppCompatActivity {
         long expiry = System.currentTimeMillis() + 24 * 60 * 60 * 1000; // 24h
 
         ftn.ma.myapplication.data.model.User user = new ftn.ma.myapplication.data.model.User(
-                email, username, passwordHash, selectedAvatarIndex, false, expiry
+                email, username, passwordHash, selectedAvatarIndex, true, expiry
         );
         // Sačuvaj korisnika lokalno
         ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
 
-        // Simulacija slanja emaila za aktivaciju
-        Toast.makeText(this, "Registracija uspešna! Proverite email za aktivaciju (simulacija).", Toast.LENGTH_LONG).show();
+        // Registracija je uspešna i nalog je odmah aktivan
+        Toast.makeText(this, "Registracija uspešna! Nalog je odmah aktivan.", Toast.LENGTH_LONG).show();
         startActivity(new Intent(this, LoginActivity.class));
         finish();
     }

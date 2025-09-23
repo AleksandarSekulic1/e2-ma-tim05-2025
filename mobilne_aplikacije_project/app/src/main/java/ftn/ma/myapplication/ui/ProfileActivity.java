@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,9 +33,9 @@ import ftn.ma.myapplication.util.SharedPreferencesManager;
 public class ProfileActivity extends AppCompatActivity {
 
     private TextView textViewUsername, textViewUserXp, textViewSimulatedDate, textViewBadgeCount;
-    private TextView textViewLevel, textViewTitle, textViewPowerPoints, textViewCoins;
+    private TextView textViewLevel, textViewTitle, textViewPowerPoints, textViewCoins, textViewEquipment;
     private ImageView imageViewAvatar, imageViewQr;
-    private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate;
+    private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate, buttonChangePassword;
     private ImageView imageViewBadge;
 
     private ExecutorService executorService;
@@ -59,11 +60,13 @@ public class ProfileActivity extends AppCompatActivity {
     textViewPowerPoints = findViewById(R.id.textViewPowerPoints);
     textViewUserXp = findViewById(R.id.textViewUserXp);
     textViewCoins = findViewById(R.id.textViewCoins);
+    textViewEquipment = findViewById(R.id.textViewEquipment);
     imageViewQr = findViewById(R.id.imageViewQr);
         buttonLogout = findViewById(R.id.buttonLogout);
         buttonAddXp = findViewById(R.id.buttonAddXp);
         buttonResetApp = findViewById(R.id.buttonResetApp);
     buttonAllianceMission = findViewById(R.id.buttonAllianceMission);
+    buttonChangePassword = findViewById(R.id.buttonChangePassword);
     Button buttonStatistics = findViewById(R.id.buttonStatistics);
         textViewSimulatedDate = findViewById(R.id.textViewSimulatedDate);
         buttonSimulateDate = findViewById(R.id.buttonSimulateDate);
@@ -80,6 +83,7 @@ public class ProfileActivity extends AppCompatActivity {
         buttonAddXp.setOnClickListener(v -> add100Xp());
         buttonResetApp.setOnClickListener(v -> showResetConfirmationDialog());
         buttonAllianceMission.setOnClickListener(v -> startActivity(new Intent(this, AllianceMissionActivity.class)));
+        buttonChangePassword.setOnClickListener(v -> showChangePasswordDialog());
         buttonSimulateDate.setOnClickListener(v -> showDatePickerDialog());
         buttonResetDate.setOnClickListener(v -> resetSimulatedDate());
         buttonStatistics.setOnClickListener(v -> {
@@ -117,6 +121,8 @@ public class ProfileActivity extends AppCompatActivity {
             textViewUserXp.setText("XP: " + user.getXp());
             // Coins
             textViewCoins.setText("Novčići: " + user.getCoins());
+            // Equipment
+            textViewEquipment.setText("Oprema: " + user.getEquipment());
             // QR kod (placeholder)
             imageViewQr.setImageResource(R.drawable.ic_profile); // TODO: generiši pravi QR kod
         }
@@ -239,5 +245,81 @@ public class ProfileActivity extends AppCompatActivity {
         } else {
             textViewSimulatedDate.setText("Simulirani datum: " + simulatedDateStr);
         }
+    }
+
+    private void showChangePasswordDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Promeni lozinku");
+
+        // Create layout for the dialog
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        final EditText oldPasswordInput = new EditText(this);
+        oldPasswordInput.setHint("Stara lozinka");
+        oldPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(oldPasswordInput);
+
+        final EditText newPasswordInput = new EditText(this);
+        newPasswordInput.setHint("Nova lozinka");
+        newPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(newPasswordInput);
+
+        final EditText confirmPasswordInput = new EditText(this);
+        confirmPasswordInput.setHint("Potvrdi novu lozinku");
+        confirmPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(confirmPasswordInput);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Promeni", (dialog, which) -> {
+            String oldPassword = oldPasswordInput.getText().toString();
+            String newPassword = newPasswordInput.getText().toString();
+            String confirmPassword = confirmPasswordInput.getText().toString();
+
+            if (oldPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                Toast.makeText(this, "Sva polja su obavezna!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (!newPassword.equals(confirmPassword)) {
+                Toast.makeText(this, "Nove lozinke se ne poklapaju!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (newPassword.length() < 6) {
+                Toast.makeText(this, "Nova lozinka mora imati najmanje 6 karaktera!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Verify old password
+            ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+            if (user != null) {
+                String oldPasswordHash = Integer.toString(oldPassword.hashCode());
+                if (!user.getPasswordHash().equals(oldPasswordHash)) {
+                    Toast.makeText(this, "Stara lozinka nije tačna!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Update password
+                String newPasswordHash = Integer.toString(newPassword.hashCode());
+                ftn.ma.myapplication.data.model.User updatedUser = new ftn.ma.myapplication.data.model.User(
+                        user.getEmail(), user.getUsername(), newPasswordHash, user.getAvatarIndex(), user.isActive(), user.getActivationExpiry()
+                );
+                updatedUser.setLevel(user.getLevel());
+                updatedUser.setTitle(user.getTitle());
+                updatedUser.setPowerPoints(user.getPowerPoints());
+                updatedUser.setXp(user.getXp());
+                updatedUser.setCoins(user.getCoins());
+                updatedUser.setEquipment(user.getEquipment());
+
+                ftn.ma.myapplication.data.local.UserStorage.saveUser(this, updatedUser);
+                Toast.makeText(this, "Lozinka je uspešno promenjena!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Otkaži", null);
+        builder.show();
     }
 }

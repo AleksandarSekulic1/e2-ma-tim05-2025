@@ -32,6 +32,8 @@ import ftn.ma.myapplication.util.SharedPreferencesManager;
 public class ProfileActivity extends AppCompatActivity {
 
     private TextView textViewUsername, textViewUserXp, textViewSimulatedDate, textViewBadgeCount;
+    private TextView textViewLevel, textViewTitle, textViewPowerPoints, textViewCoins;
+    private ImageView imageViewAvatar, imageViewQr;
     private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate;
     private ImageView imageViewBadge;
 
@@ -50,12 +52,19 @@ public class ProfileActivity extends AppCompatActivity {
         executorService = Executors.newSingleThreadExecutor();
 
         // Povezivanje svih elemenata
-        textViewUsername = findViewById(R.id.textViewUsername);
-        textViewUserXp = findViewById(R.id.textViewUserXp);
+    imageViewAvatar = findViewById(R.id.imageViewAvatar);
+    textViewUsername = findViewById(R.id.textViewUsername);
+    textViewLevel = findViewById(R.id.textViewLevel);
+    textViewTitle = findViewById(R.id.textViewTitle);
+    textViewPowerPoints = findViewById(R.id.textViewPowerPoints);
+    textViewUserXp = findViewById(R.id.textViewUserXp);
+    textViewCoins = findViewById(R.id.textViewCoins);
+    imageViewQr = findViewById(R.id.imageViewQr);
         buttonLogout = findViewById(R.id.buttonLogout);
         buttonAddXp = findViewById(R.id.buttonAddXp);
         buttonResetApp = findViewById(R.id.buttonResetApp);
-        buttonAllianceMission = findViewById(R.id.buttonAllianceMission);
+    buttonAllianceMission = findViewById(R.id.buttonAllianceMission);
+    Button buttonStatistics = findViewById(R.id.buttonStatistics);
         textViewSimulatedDate = findViewById(R.id.textViewSimulatedDate);
         buttonSimulateDate = findViewById(R.id.buttonSimulateDate);
         buttonResetDate = findViewById(R.id.buttonResetDate);
@@ -73,6 +82,10 @@ public class ProfileActivity extends AppCompatActivity {
         buttonAllianceMission.setOnClickListener(v -> startActivity(new Intent(this, AllianceMissionActivity.class)));
         buttonSimulateDate.setOnClickListener(v -> showDatePickerDialog());
         buttonResetDate.setOnClickListener(v -> resetSimulatedDate());
+        buttonStatistics.setOnClickListener(v -> {
+            Intent intent = new Intent(this, StatisticsActivity.class);
+            startActivity(intent);
+        });
     }
 
     /**
@@ -87,9 +100,26 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void loadUserData() {
-        textViewUsername.setText("Korisničko ime: student");
-        int currentXp = SharedPreferencesManager.getUserXp(this);
-        textViewUserXp.setText("Ukupno XP: " + currentXp);
+        ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+        if (user != null) {
+            // Avatar
+            int avatarResId = getResources().getIdentifier("avatar_" + (user.getAvatarIndex() + 1), "drawable", getPackageName());
+            imageViewAvatar.setImageResource(avatarResId);
+            // Username
+            textViewUsername.setText("Korisničko ime: " + user.getUsername());
+            // Level
+            textViewLevel.setText("Nivo: " + user.getLevel());
+            // Title
+            textViewTitle.setText("Titula: " + user.getTitle());
+            // Power Points
+            textViewPowerPoints.setText("Snaga: " + user.getPowerPoints() + " PP");
+            // XP
+            textViewUserXp.setText("XP: " + user.getXp());
+            // Coins
+            textViewCoins.setText("Novčići: " + user.getCoins());
+            // QR kod (placeholder)
+            imageViewQr.setImageResource(R.drawable.ic_profile); // TODO: generiši pravi QR kod
+        }
         updateSimulatedDateDisplay();
         loadBadgeData();
     }

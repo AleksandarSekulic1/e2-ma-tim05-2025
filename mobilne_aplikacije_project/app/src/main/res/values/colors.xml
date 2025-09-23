@@ -2,4 +2,23 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary colors -->
+    <color name="primary">#2196F3</color>
+    <color name="secondary">#757575</color>
+    <color name="accent">#FF9800</color>
+    
+    <!-- Equipment colors -->
+    <color name="gold">#FFD700</color>
+    <color name="light_gray">#F5F5F5</color>
+    <color name="info_background">#E3F2FD</color>
+    
+    <!-- Battle colors -->
+    <color name="battle_background">#1A1A1A</color>
+    <color name="boss_text">#FF5722</color>
+    <color name="boss_health">#F44336</color>
+    <color name="health_background">#424242</color>
+    <color name="health_text">#FFFFFF</color>
+    <color name="player_stats">#4CAF50</color>
+    <color name="battle_log">#E0E0E0</color>
 </resources>

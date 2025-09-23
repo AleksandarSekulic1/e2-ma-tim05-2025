@@ -44,6 +44,9 @@
         <activity android:name=".ui.RegisterActivity" />
         <activity android:name=".ui.StatisticsActivity" />
         <activity android:name=".ui.ActivateAccountActivity" />
+        <activity android:name=".ui.ShopActivity" />
+        <activity android:name=".ui.EquipmentActivity" />
+        <activity android:name=".ui.BossBattleActivity" />
     </application>
 
 </manifest>

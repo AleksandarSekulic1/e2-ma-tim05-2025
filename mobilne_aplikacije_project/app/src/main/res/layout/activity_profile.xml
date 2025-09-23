@@ -248,6 +248,71 @@
 
             </LinearLayout>
 
+            <!-- Equipment sekcija -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/background_rounded_dark"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚔️ OPREMA I PRODAVNICA"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/buttonShop"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="🛒 PRODAVNICA"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_blue_dark" />
+
+                    <Button
+                        android:id="@+id/buttonEquipment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="🎒 OPREMA"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_purple" />
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/buttonBossBattle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="⚔️ BORBA SA BOSOM"
+                    android:textStyle="bold"
+                    android:backgroundTint="@android:color/holo_red_dark" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="💡 Kupite opremu u prodavnici, aktivirajte je i koristite u borbi!"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:alpha="0.8" />
+
+            </LinearLayout>
+
             <Button
                 android:id="@+id/buttonResetApp"
                 android:layout_width="match_parent"

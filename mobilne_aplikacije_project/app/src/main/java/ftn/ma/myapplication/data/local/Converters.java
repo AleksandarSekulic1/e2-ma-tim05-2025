@@ -3,6 +3,9 @@ package ftn.ma.myapplication.data.local;
 import androidx.room.TypeConverter;
 import java.util.Date;
 import ftn.ma.myapplication.data.model.Task;
+import ftn.ma.myapplication.data.model.Potion;
+import ftn.ma.myapplication.data.model.Clothing;
+import ftn.ma.myapplication.data.model.Weapon;
 
 public class Converters {
 
@@ -51,5 +54,38 @@ public class Converters {
     }
 
     // Uklonjen je blok za RepetitionUnit jer više ne postoji u Task modelu
+
+    // Konverteri za PotionEffect Enum <-> String
+    @TypeConverter
+    public static Potion.PotionEffect toPotionEffect(String value) {
+        return value == null ? null : Potion.PotionEffect.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromPotionEffect(Potion.PotionEffect value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za ClothingType Enum <-> String
+    @TypeConverter
+    public static Clothing.ClothingType toClothingType(String value) {
+        return value == null ? null : Clothing.ClothingType.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromClothingType(Clothing.ClothingType value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za WeaponType Enum <-> String
+    @TypeConverter
+    public static Weapon.WeaponType toWeaponType(String value) {
+        return value == null ? null : Weapon.WeaponType.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromWeaponType(Weapon.WeaponType value) {
+        return value == null ? null : value.name();
+    }
 
 }

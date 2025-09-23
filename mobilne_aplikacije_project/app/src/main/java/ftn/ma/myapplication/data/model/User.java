@@ -1,6 +1,13 @@
 package ftn.ma.myapplication.data.model;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+import androidx.room.Ignore;
+
+@Entity(tableName = "users")
 public class User {
+    @PrimaryKey(autoGenerate = true)
+    private int id;
     private String email;
     private String username;
     private String passwordHash;
@@ -25,6 +32,9 @@ public class User {
     
     // Ostali podaci: broj bedževa, lista bedževa, QR kod itd.
 
+    public User() {}
+
+    @Ignore
     public User(String email, String username, String passwordHash, int avatarIndex, boolean isActive, long activationExpiry) {
         this.email = email;
         this.username = username;
@@ -41,6 +51,9 @@ public class User {
     }
 
     // Getteri i setteri
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    
     public String getEmail() { return email; }
     public String getUsername() { return username; }
     public String getPasswordHash() { return passwordHash; }
@@ -54,6 +67,10 @@ public class User {
     public int getCoins() { return coins; }
     public String getEquipment() { return equipment; }
 
+    public void setEmail(String email) { this.email = email; }
+    public void setUsername(String username) { this.username = username; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void setAvatarIndex(int avatarIndex) { this.avatarIndex = avatarIndex; }
     public void setActive(boolean active) { isActive = active; }
     public void setActivationExpiry(long expiry) { activationExpiry = expiry; }
     public void setLevel(int level) { this.level = level; }
@@ -269,5 +286,95 @@ public class User {
         int randomXP = (int) (Math.random() * 100) + 10; // 10-110 XP
         boolean leveledUp = addXP(randomXP);
         return randomXP;
+    }
+    
+    // ==================== EQUIPMENT BONUS METHODS ====================
+    
+    /**
+     * Računa ukupne Power Points sa svim aktivnim bonusima
+     * Uključuje: napitke, odeću (rukavice), oružje (mač)
+     */
+    public int getTotalPowerPoints() {
+        // TODO: Implementirati kada se doda Equipment integration
+        // Ova metoda će biti pozivana iz battle sistema
+        return this.powerPoints;
+    }
+    
+    /**
+     * Računa bonus PP od aktivnih napitaka
+     */
+    public int getPotionBonus() {
+        // TODO: Pronaći aktivne napitke iz baze i sabrati bonuse
+        return 0;
+    }
+    
+    /**
+     * Računa bonus PP od aktivne odeće (rukavice)
+     */
+    public int getClothingPowerBonus() {
+        // TODO: Pronaći aktivne rukavice i sabrati bonuse
+        return 0;
+    }
+    
+    /**
+     * Računa bonus PP od aktivnog oružja (mač)
+     */
+    public int getWeaponPowerBonus() {
+        // TODO: Pronaći aktivni mač i vratiti bonus
+        return 0;
+    }
+    
+    /**
+     * Računa bonus šanse za uspešan napad (štit)
+     */
+    public double getAttackChanceBonus() {
+        // TODO: Pronaći aktivni štit i vratiti bonus
+        return 0.0;
+    }
+    
+    /**
+     * Računa šansu za dodatni napad (čizme)
+     */
+    public double getExtraAttackChance() {
+        // TODO: Pronaći aktivne čizme i vratiti bonus
+        return 0.0;
+    }
+    
+    /**
+     * Računa bonus novčića od aktivnog oružja (luk)
+     */
+    public int getCoinBonus(int baseCoins) {
+        // TODO: Pronaći aktivni luk i vratiti bonus
+        return 0;
+    }
+    
+    /**
+     * Primenjuje equipment bonuse za borbu sa bosom
+     */
+    public BattleStats getBattleStats() {
+        int totalPP = getTotalPowerPoints();
+        double attackChance = 100.0 + getAttackChanceBonus(); // Bazna šansa + bonus
+        double extraAttackChance = getExtraAttackChance();
+        
+        return new BattleStats(totalPP, attackChance, extraAttackChance);
+    }
+    
+    /**
+     * Klasa za držanje battle statistika sa bonusima
+     */
+    public static class BattleStats {
+        private final int powerPoints;
+        private final double attackChance;
+        private final double extraAttackChance;
+        
+        public BattleStats(int powerPoints, double attackChance, double extraAttackChance) {
+            this.powerPoints = powerPoints;
+            this.attackChance = attackChance;
+            this.extraAttackChance = extraAttackChance;
+        }
+        
+        public int getPowerPoints() { return powerPoints; }
+        public double getAttackChance() { return attackChance; }
+        public double getExtraAttackChance() { return extraAttackChance; }
     }
 }

@@ -50,7 +50,7 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView textViewLevel, textViewTitle, textViewPowerPoints, textViewCoins, textViewEquipment;
     private ImageView imageViewAvatar, imageViewQr;
     private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate, buttonChangePassword;
-    private Button buttonAdminAddXP;
+    private Button buttonAdminAddXP, buttonShop, buttonEquipment, buttonBossBattle;
     private EditText editTextAdminXP;
     private ImageView imageViewBadge;
 
@@ -93,6 +93,11 @@ public class ProfileActivity extends AppCompatActivity {
         // Admin XP elementi
         editTextAdminXP = findViewById(R.id.editTextAdminXP);
         buttonAdminAddXP = findViewById(R.id.buttonAdminAddXP);
+        
+        // Equipment elementi
+        buttonShop = findViewById(R.id.buttonShop);
+        buttonEquipment = findViewById(R.id.buttonEquipment);
+        buttonBossBattle = findViewById(R.id.buttonBossBattle);
 
         setupBottomNavigation();
 
@@ -109,6 +114,11 @@ public class ProfileActivity extends AppCompatActivity {
             Intent intent = new Intent(this, StatisticsActivity.class);
             startActivity(intent);
         });
+        
+        // Equipment listener-i
+        buttonShop.setOnClickListener(v -> openShop());
+        buttonEquipment.setOnClickListener(v -> openEquipment());
+        buttonBossBattle.setOnClickListener(v -> openBossBattle());
     }
 
     /**
@@ -125,9 +135,13 @@ public class ProfileActivity extends AppCompatActivity {
     private void loadUserData() {
         ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
         if (user != null) {
-            // MIGRACIJSKI FIX: Popravi PP za postojeće korisnike
-            user.recalculateLevelAndPP();
-            // Sačuvaj popravke
+            // Debug log - NE POZIVAMO VIŠE recalculateLevelAndPP jer briše napitke bonuse!
+            System.out.println("=== PROFILE LOAD ===");
+            System.out.println("PP (sa napicima): " + user.getPowerPoints());
+            
+            // NE POZIVAMO: user.recalculateLevelAndPP(); - jer briše napitke!
+            
+            // Samo sačuvamo trenutno stanje (bez menjanja PP)
             ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
             
             // Avatar
@@ -489,5 +503,22 @@ public class ProfileActivity extends AppCompatActivity {
 
         builder.setNegativeButton("Otkaži", null);
         builder.show();
+    }
+    
+    // ==================== EQUIPMENT NAVIGATION METHODS ====================
+    
+    private void openShop() {
+        Intent intent = new Intent(this, ShopActivity.class);
+        startActivity(intent);
+    }
+    
+    private void openEquipment() {
+        Intent intent = new Intent(this, EquipmentActivity.class);
+        startActivity(intent);
+    }
+    
+    private void openBossBattle() {
+        Intent intent = new Intent(this, BossBattleActivity.class);
+        startActivity(intent);
     }
 }

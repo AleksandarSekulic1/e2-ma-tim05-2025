@@ -29,6 +29,20 @@ import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 import ftn.ma.myapplication.ui.game.AllianceMissionActivity;
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import ftn.ma.myapplication.LoginActivity;
+import ftn.ma.myapplication.R;
+import ftn.ma.myapplication.data.local.AppDatabase;
+import ftn.ma.myapplication.data.local.CategoryDao;
+import ftn.ma.myapplication.data.local.TaskDao;
+import ftn.ma.myapplication.ui.calendar.TasksCalendarActivity;
+import ftn.ma.myapplication.ui.categories.CategoriesActivity;
+import ftn.ma.myapplication.ui.game.AllianceMissionActivity;
+import ftn.ma.myapplication.ui.tasks.TasksActivity;
+import ftn.ma.myapplication.util.SharedPreferencesManager;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -36,6 +50,8 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView textViewLevel, textViewTitle, textViewPowerPoints, textViewCoins, textViewEquipment;
     private ImageView imageViewAvatar, imageViewQr;
     private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate, buttonChangePassword;
+    private Button buttonAdminAddXP;
+    private EditText editTextAdminXP;
     private ImageView imageViewBadge;
 
     private ExecutorService executorService;
@@ -73,14 +89,17 @@ public class ProfileActivity extends AppCompatActivity {
         buttonResetDate = findViewById(R.id.buttonResetDate);
         imageViewBadge = findViewById(R.id.imageViewBadge);
         textViewBadgeCount = findViewById(R.id.textViewBadgeCount);
-
-        // PREMEŠTENO: Poziv 'loadUserData()' je prebačen u onResume da bi se podaci uvek osvežavali.
+        
+        // Admin XP elementi
+        editTextAdminXP = findViewById(R.id.editTextAdminXP);
+        buttonAdminAddXP = findViewById(R.id.buttonAdminAddXP);
 
         setupBottomNavigation();
 
         // Postavljanje listener-a
         buttonLogout.setOnClickListener(v -> logout());
         buttonAddXp.setOnClickListener(v -> add100Xp());
+        buttonAdminAddXP.setOnClickListener(v -> addAdminXP());
         buttonResetApp.setOnClickListener(v -> showResetConfirmationDialog());
         buttonAllianceMission.setOnClickListener(v -> startActivity(new Intent(this, AllianceMissionActivity.class)));
         buttonChangePassword.setOnClickListener(v -> showChangePasswordDialog());
@@ -106,19 +125,31 @@ public class ProfileActivity extends AppCompatActivity {
     private void loadUserData() {
         ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
         if (user != null) {
+            // MIGRACIJSKI FIX: Popravi PP za postojeće korisnike
+            user.recalculateLevelAndPP();
+            // Sačuvaj popravke
+            ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
+            
             // Avatar
             int avatarResId = getResources().getIdentifier("avatar_" + (user.getAvatarIndex() + 1), "drawable", getPackageName());
             imageViewAvatar.setImageResource(avatarResId);
             // Username
             textViewUsername.setText("Korisničko ime: " + user.getUsername());
-            // Level
-            textViewLevel.setText("Nivo: " + user.getLevel());
+            // Level sa detaljnim informacijama
+            int currentLevel = user.calculateCurrentLevel();
+            int xpToNext = user.getXPToNextLevel();
+            textViewLevel.setText("Nivo: " + currentLevel + " (do sledećeg: " + xpToNext + " XP)");
             // Title
             textViewTitle.setText("Titula: " + user.getTitle());
-            // Power Points
-            textViewPowerPoints.setText("Snaga: " + user.getPowerPoints() + " PP");
-            // XP
-            textViewUserXp.setText("XP: " + user.getXp());
+            // Power Points sa detaljnim informacijama
+            int expectedPP = user.getExpectedPPForCurrentLevel();
+            int currentPP = user.getPowerPoints();
+            String ppStatus = currentPP == expectedPP ? "✅" : "⚠️";
+            textViewPowerPoints.setText("Snaga: " + currentPP + " PP " + ppStatus + " (očekivano: " + expectedPP + ")");
+            // XP sa multiplier informacijama
+            int importanceBonus = user.getImportanceXPMultiplier();
+            int difficultyBonus = user.getDifficultyXPMultiplier();
+            textViewUserXp.setText("XP: " + user.getXp() + " (Bitnost: +" + importanceBonus + ", Težina: +" + difficultyBonus + ")");
             // Coins
             textViewCoins.setText("Novčići: " + user.getCoins());
             // Equipment
@@ -151,11 +182,34 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void resetData() {
         executorService.execute(() -> {
+            // Resetuj zadatke i kategorije iz database
             taskDao.deleteAllTasks();
             categoryDao.deleteAllCategories();
+            
+            // Resetuj SharedPreferences podatke
             SharedPreferencesManager.resetAllUserData(this);
+            
+            // Resetuj User podatke (XP, level, coins, itd.) na početne vrednosti
+            ftn.ma.myapplication.data.model.User currentUser = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+            if (currentUser != null) {
+                // Kreiraj novi User objekat sa resetovanim podacima ali istim osnovnim informacijama
+                ftn.ma.myapplication.data.model.User resetUser = new ftn.ma.myapplication.data.model.User(
+                    currentUser.getEmail(), 
+                    currentUser.getUsername(), 
+                    currentUser.getPasswordHash(), 
+                    currentUser.getAvatarIndex(), 
+                    currentUser.isActive(), 
+                    currentUser.getActivationExpiry()
+                );
+                // Konstruktor automatski postavlja početne vrednosti:
+                // level = 1, title = "Početnik", powerPoints = 0, xp = 0, coins = 0, equipment = "Osnovna oprema"
+                
+                // Sačuvaj resetovane podatke
+                ftn.ma.myapplication.data.local.UserStorage.saveUser(this, resetUser);
+            }
+            
             runOnUiThread(() -> {
-                Toast.makeText(this, "Podaci su resetovani.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Svi podaci su resetovani!\nXP: 0, Nivo: 1, Coins: 0", Toast.LENGTH_LONG).show();
                 loadUserData();
             });
         });
@@ -172,18 +226,132 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void add100Xp() {
-        int currentXp = SharedPreferencesManager.getUserXp(this);
-        currentXp += 100;
-        SharedPreferencesManager.saveUserXp(this, currentXp);
-        loadUserData();
-        Toast.makeText(this, "Dodato 100 XP!", Toast.LENGTH_SHORT).show();
+        ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+        if (user != null) {
+            int oldLevel = user.getLevel();
+            int addedXP = user.addRandomXP(); // Dodaje random 10-110 XP
+            
+            // Sačuvaj ažurirane podatke
+            ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
+            
+            // Ažuriraj display
+            loadUserData();
+            
+            int newLevel = user.getLevel();
+            if (newLevel > oldLevel) {
+                // Level up se desio!
+                int levelsGained = newLevel - oldLevel;
+                int coinsEarned = levelsGained * 50; // 50 coins po nivou
+                
+                // Izračunaj PP nagrade
+                int totalPPGained = 0;
+                for (int level = oldLevel + 1; level <= newLevel; level++) {
+                    totalPPGained += ftn.ma.myapplication.data.model.User.getPPForLevel(level);
+                }
+                
+                Toast.makeText(this, 
+                    "🎉 LEVEL UP! 🎉\n" +
+                    "Dodano: " + addedXP + " XP\n" +
+                    "Novi nivo: " + newLevel + "\n" +
+                    "PP nagrade: +" + totalPPGained + " PP\n" +
+                    "Coins: +" + coinsEarned + " novčića\n" +
+                    "Nova titula: " + user.getTitle(), 
+                    Toast.LENGTH_LONG).show();
+            } else {
+                int xpToNext = user.getXPToNextLevel();
+                Toast.makeText(this, 
+                    "Dodano: " + addedXP + " XP\n" +
+                    "Do sledećeg nivoa: " + xpToNext + " XP", 
+                    Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Admin funkcionalnost za dodavanje custom količine XP-a
+     */
+    private void addAdminXP() {
+        String xpText = editTextAdminXP.getText().toString().trim();
+        
+        if (xpText.isEmpty()) {
+            Toast.makeText(this, "Unesite broj XP poena!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        try {
+            int adminXP = Integer.parseInt(xpText);
+            
+            if (adminXP <= 0) {
+                Toast.makeText(this, "XP mora biti pozitivan broj!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            if (adminXP > 100000) {
+                Toast.makeText(this, "Maksimalno 100,000 XP po dodeli!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+            if (user != null) {
+                int oldLevel = user.getLevel();
+                boolean leveledUp = user.addXP(adminXP);
+                
+                // Sačuvaj ažurirane podatke
+                ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
+                
+                // Očisti input polje
+                editTextAdminXP.setText("");
+                
+                // Ažuriraj display
+                loadUserData();
+                
+                int newLevel = user.getLevel();
+                if (leveledUp) {
+                    // Level up se desio!
+                    int levelsGained = newLevel - oldLevel;
+                    int coinsEarned = levelsGained * 50; // 50 coins po nivou
+                    
+                    // Izračunaj PP nagrade
+                    int totalPPGained = 0;
+                    for (int level = oldLevel + 1; level <= newLevel; level++) {
+                        totalPPGained += ftn.ma.myapplication.data.model.User.getPPForLevel(level);
+                    }
+                    
+                    Toast.makeText(this, 
+                        "⚡ ADMIN BOOST! ⚡\n" +
+                        "Dodano: " + adminXP + " XP\n" +
+                        "Nivoi preskočeni: " + levelsGained + "\n" +
+                        "Novi nivo: " + newLevel + "\n" +
+                        "PP nagrade: +" + totalPPGained + " PP\n" +
+                        "Coins: +" + coinsEarned + " novčića\n" +
+                        "Nova titula: " + user.getTitle(), 
+                        Toast.LENGTH_LONG).show();
+                } else {
+                    int xpToNext = user.getXPToNextLevel();
+                    Toast.makeText(this, 
+                        "⚡ Admin XP dodano: " + adminXP + "\n" +
+                        "Do sledećeg nivoa: " + xpToNext + " XP", 
+                        Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Unesite valjan broj!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showResetConfirmationDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("Resetovanje podataka")
-                .setMessage("Da li ste sigurni? Svi zadaci, kategorije i napredak će biti trajno obrisani.")
-                .setPositiveButton("Resetuj", (dialog, which) -> resetData())
+                .setTitle("⚠️ Resetovanje podataka")
+                .setMessage("Da li ste sigurni? Ovo će obrisati:\n\n" +
+                           "• Sve zadatke i kategorije\n" +
+                           "• XP (vraća na 0)\n" +
+                           "• Nivo (vraća na 1)\n" +
+                           "• Novčiće (vraća na 0)\n" +
+                           "• Titulu (vraća na 'Početnik')\n" +
+                           "• Sav napredak u igri\n\n" +
+                           "Account podaci (email, username, lozinka) ostaju isti.")
+                .setPositiveButton("🗑️ Resetuj sve", (dialog, which) -> resetData())
                 .setNegativeButton("Otkaži", null)
                 .show();
     }

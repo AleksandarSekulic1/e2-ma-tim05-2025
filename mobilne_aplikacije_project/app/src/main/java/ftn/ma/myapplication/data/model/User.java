@@ -13,6 +13,16 @@ public class User {
     private int xp;
     private int coins;
     private String equipment; // Oprema koju korisnik trenutno nosi
+    
+    // Level sistem konstante
+    private static final int FIRST_LEVEL_XP = 200;
+    private static final int BASE_IMPORTANCE_XP = 10;
+    private static final int BASE_DIFFICULTY_XP = 5;
+    private static final int BOSS_REWARD_COINS = 50;
+    
+    // PP (Power Points) sistem konstante
+    private static final int FIRST_LEVEL_UP_PP = 40; // PP za prelazak na nivo 2
+    
     // Ostali podaci: broj bedževa, lista bedževa, QR kod itd.
 
     public User(String email, String username, String passwordHash, int avatarIndex, boolean isActive, long activationExpiry) {
@@ -22,7 +32,7 @@ public class User {
         this.avatarIndex = avatarIndex;
         this.isActive = isActive;
         this.activationExpiry = activationExpiry;
-        this.level = 1;
+        this.level = 0; // Počinje sa nivoom 0
         this.title = "Početnik";
         this.powerPoints = 0;
         this.xp = 0;
@@ -52,4 +62,212 @@ public class User {
     public void setXp(int xp) { this.xp = xp; }
     public void setCoins(int coins) { this.coins = coins; }
     public void setEquipment(String equipment) { this.equipment = equipment; }
+    
+    // Level progression metode
+    
+    /**
+     * Računa koliko XP je potrebno za određeni nivo
+     * Nivo 0: 0 XP (početak)
+     * Nivo 1: 200 XP
+     * Sledeći nivoi: prethodni * 2 + prethodni / 2 (zaokruženo na stotinu)
+     */
+    public static int getXPRequiredForLevel(int level) {
+        if (level <= 0) return 0; // Nivo 0 ne treba XP
+        if (level == 1) return FIRST_LEVEL_XP; // Nivo 1 treba 200 XP
+        
+        int previousXP = getXPRequiredForLevel(level - 1);
+        int nextXP = previousXP * 2 + previousXP / 2;
+        
+        // Zaokruži na prvu narednu stotinu
+        return ((nextXP + 99) / 100) * 100;
+    }
+    
+    /**
+     * Računa ukupno XP potrebno za dostizanje određenog nivoa
+     */
+    public static int getTotalXPForLevel(int level) {
+        int total = 0;
+        for (int i = 1; i <= level; i++) { // Počinje od nivoa 1
+            total += getXPRequiredForLevel(i);
+        }
+        return total;
+    }
+    
+    /**
+     * Računa trenutni nivo na osnovu XP-a
+     */
+    public int calculateCurrentLevel() {
+        if (this.xp < FIRST_LEVEL_XP) return 0; // Manje od 200 XP = nivo 0
+        
+        int level = 0;
+        int remainingXP = this.xp;
+        
+        // Oduzimaj XP potreban za svaki nivo dok ne ostane premalo
+        while (remainingXP >= getXPRequiredForLevel(level + 1)) {
+            level++;
+            remainingXP -= getXPRequiredForLevel(level);
+        }
+        
+        return level;
+    }
+    
+    /**
+     * Računa koliko XP fali do sledećeg nivoa
+     */
+    public int getXPToNextLevel() {
+        int currentLevel = calculateCurrentLevel();
+        int totalXPForCurrentLevel = getTotalXPForLevel(currentLevel);
+        int xpNeededForNextLevel = getXPRequiredForLevel(currentLevel + 1);
+        
+        return totalXPForCurrentLevel + xpNeededForNextLevel - this.xp;
+    }
+    
+    /**
+     * Računa XP bonus za bitnost zadatka na trenutnom nivou
+     */
+    public int getImportanceXPMultiplier() {
+        if (level <= 1) return BASE_IMPORTANCE_XP;
+        
+        int multiplier = BASE_IMPORTANCE_XP;
+        for (int i = 2; i <= level; i++) {
+            multiplier = multiplier + multiplier / 2;
+        }
+        return Math.round(multiplier);
+    }
+    
+    /**
+     * Računa XP bonus za težinu zadatka na trenutnom nivou
+     */
+    public int getDifficultyXPMultiplier() {
+        if (level <= 1) return BASE_DIFFICULTY_XP;
+        
+        int multiplier = BASE_DIFFICULTY_XP;
+        for (int i = 2; i <= level; i++) {
+            multiplier = multiplier + multiplier / 2;
+        }
+        return Math.round(multiplier);
+    }
+    
+    /**
+     * Računa koliko PP treba dobiti za određeni nivo prema formuli:
+     * Nivo 0-1: 0 PP
+     * Nivo 2: 40 PP (prvi level up)
+     * Sledeći nivoi: PP_prethodni + 3/4 * PP_prethodni
+     */
+    public static int getPPForLevel(int level) {
+        if (level <= 1) return 0; // Nivo 0 i 1 nemaju PP
+        if (level == 2) return FIRST_LEVEL_UP_PP; // Prvi level up (1→2) daje 40 PP
+        
+        // Za nivoe 3+: PP_prethodni + 3/4 * PP_prethodni
+        int previousPP = getPPForLevel(level - 1);
+        double newPP = previousPP + (3.0 / 4.0) * previousPP;
+        return (int) Math.round(newPP);
+    }
+    
+    /**
+     * Računa ukupno PP koje korisnik treba da ima na određenom nivou
+     */
+    public static int getTotalPPForLevel(int level) {
+        int total = 0;
+        for (int i = 2; i <= level; i++) { // Počinje od nivoa 2
+            total += getPPForLevel(i);
+        }
+        return total;
+    }
+    
+    /**
+     * Računa koliko PP korisnik treba da ima na svom trenutnom nivou
+     */
+    public int getExpectedPPForCurrentLevel() {
+        return getTotalPPForLevel(this.level);
+    }
+    
+    /**
+     * Sinhronizuje PP sa trenutnim nivoom (za postojeće korisnike)
+     * Poziva se kada se učita korisnik da osigura da ima tačan PP za svoj nivo
+     */
+    public void syncPPToCurrentLevel() {
+        int expectedPP = getExpectedPPForCurrentLevel();
+        this.powerPoints = expectedPP;
+    }
+    
+    /**
+     * Popravlja level i PP na osnovu trenutnog XP-a
+     * Korisno za migraciju postojećih korisnika
+     */
+    public void recalculateLevelAndPP() {
+        this.level = calculateCurrentLevel();
+        syncPPToCurrentLevel();
+        updateTitle();
+    }
+    
+    /**
+     * Dodaje XP i proverava da li je vreme za level up
+     * @param xpAmount količina XP za dodavanje
+     * @return true ako je došlo do level up-a
+     */
+    public boolean addXP(int xpAmount) {
+        int oldLevel = this.level;
+        this.xp += xpAmount;
+        
+        int newLevel = calculateCurrentLevel();
+        if (newLevel > oldLevel) {
+            levelUp(newLevel);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Izvršava level up i daje nagrade
+     */
+    private void levelUp(int newLevel) {
+        int oldLevel = this.level;
+        int levelsGained = newLevel - this.level;
+        this.level = newLevel;
+        
+        // Dodeli PP za svaki preskočeni nivo
+        int totalPPGained = 0;
+        for (int level = oldLevel + 1; level <= newLevel; level++) {
+            int ppForThisLevel = getPPForLevel(level);
+            this.powerPoints += ppForThisLevel;
+            totalPPGained += ppForThisLevel;
+        }
+        
+        // Nagradi igrača novčićima za "pobedu nad bosom"
+        int coinReward = levelsGained * BOSS_REWARD_COINS;
+        this.coins += coinReward;
+        
+        // Ažuriraj titulu na osnovu nivoa
+        updateTitle();
+    }
+    
+    /**
+     * Ažurira titulu na osnovu trenutnog nivoa
+     */
+    private void updateTitle() {
+        if (level >= 50) {
+            this.title = "Legenda";
+        } else if (level >= 30) {
+            this.title = "Majstor";
+        } else if (level >= 20) {
+            this.title = "Ekspert";
+        } else if (level >= 10) {
+            this.title = "Veteran";
+        } else if (level >= 5) {
+            this.title = "Napredni";
+        } else {
+            this.title = "Početnik";
+        }
+    }
+    
+    /**
+     * Simulira dodavanje random XP-a za testiranje
+     */
+    public int addRandomXP() {
+        int randomXP = (int) (Math.random() * 100) + 10; // 10-110 XP
+        boolean leveledUp = addXP(randomXP);
+        return randomXP;
+    }
 }

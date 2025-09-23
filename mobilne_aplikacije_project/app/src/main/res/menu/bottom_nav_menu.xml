@@ -15,9 +15,20 @@
         android:id="@+id/navigation_categories"
         android:icon="@drawable/ic_categories"
         android:title="Kategorije" />
+        
     <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/ic_profile"
         android:title="Profil" />
+        
+    <item
+        android:id="@+id/navigation_alliance"
+        android:icon="@drawable/ic_alliance"
+        android:title="Savez" />
+        
+    <item
+        android:id="@+id/navigation_friends"
+        android:icon="@drawable/ic_add_friend"
+        android:title="Prijatelji" />
 
 </menu>

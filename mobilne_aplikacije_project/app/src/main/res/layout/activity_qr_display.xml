@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header sekcija -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Moj QR kod"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/username_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="username"
+                android:textColor="@color/primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- QR kod sekcija -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_background"
+            android:elevation="4dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:layout_marginBottom="24dp">
+
+            <ImageView
+                android:id="@+id/qr_code_image"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
+                android:background="@color/white"
+                android:contentDescription="QR kod za dodavanje prijatelja"
+                android:padding="8dp"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/instructions_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:text="Pokažite ovaj QR kod prijateljima da vas dodaju u kontakte. QR kod je važeći 24 sata."
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <!-- Dugmad za akcije -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btn_share"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/button_primary"
+                android:drawableStart="@drawable/ic_share"
+                android:drawablePadding="12dp"
+                android:drawableTint="@color/white"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:text="Podeli QR kod"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/button_secondary"
+                android:drawableStart="@drawable/ic_save"
+                android:drawablePadding="12dp"
+                android:drawableTint="@color/primary"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:text="Sačuvaj u galeriju"
+                android:textColor="@color/primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_copy_id"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/button_outline"
+                android:drawableStart="@drawable/ic_copy"
+                android:drawablePadding="12dp"
+                android:drawableTint="@color/text_secondary"
+                android:gravity="center"
+                android:text="Kopiraj User ID"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+        <!-- Info sekcija -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/info_background"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/ic_info"
+                android:drawablePadding="12dp"
+                android:drawableTint="@color/info"
+                android:gravity="center_vertical"
+                android:text="Kako koristiti QR kod:"
+                android:textColor="@color/info"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="24dp"
+                android:lineSpacingExtra="2dp"
+                android:text="• Pokažite ovaj QR kod prijatelju\n• Prijatelj treba da skentira kod\n• Automatski će vam biti poslat zahtev za prijateljstvo\n• QR kod je važeći 24 sata"
+                android:textColor="@color/info"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

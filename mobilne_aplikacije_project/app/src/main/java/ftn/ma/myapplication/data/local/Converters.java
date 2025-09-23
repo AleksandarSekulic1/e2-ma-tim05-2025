@@ -6,6 +6,11 @@ import ftn.ma.myapplication.data.model.Task;
 import ftn.ma.myapplication.data.model.Potion;
 import ftn.ma.myapplication.data.model.Clothing;
 import ftn.ma.myapplication.data.model.Weapon;
+import ftn.ma.myapplication.data.model.Friend;
+import ftn.ma.myapplication.data.model.Alliance;
+import ftn.ma.myapplication.data.model.AllianceInvitation;
+import ftn.ma.myapplication.data.model.ChatMessage;
+import ftn.ma.myapplication.data.model.AllianceMember;
 
 public class Converters {
 
@@ -85,6 +90,61 @@ public class Converters {
 
     @TypeConverter
     public static String fromWeaponType(Weapon.WeaponType value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za FriendshipStatus Enum <-> String
+    @TypeConverter
+    public static Friend.FriendshipStatus toFriendshipStatus(String value) {
+        return value == null ? null : Friend.FriendshipStatus.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromFriendshipStatus(Friend.FriendshipStatus value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za AllianceStatus Enum <-> String
+    @TypeConverter
+    public static Alliance.AllianceStatus toAllianceStatus(String value) {
+        return value == null ? null : Alliance.AllianceStatus.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromAllianceStatus(Alliance.AllianceStatus value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za InvitationStatus Enum <-> String
+    @TypeConverter
+    public static AllianceInvitation.InvitationStatus toInvitationStatus(String value) {
+        return value == null ? null : AllianceInvitation.InvitationStatus.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromInvitationStatus(AllianceInvitation.InvitationStatus value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za MessageType Enum <-> String
+    @TypeConverter
+    public static ChatMessage.MessageType toMessageType(String value) {
+        return value == null ? null : ChatMessage.MessageType.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromMessageType(ChatMessage.MessageType value) {
+        return value == null ? null : value.name();
+    }
+
+    // Konverteri za MemberRole Enum <-> String
+    @TypeConverter
+    public static AllianceMember.MemberRole toMemberRole(String value) {
+        return value == null ? null : AllianceMember.MemberRole.valueOf(value);
+    }
+
+    @TypeConverter
+    public static String fromMemberRole(AllianceMember.MemberRole value) {
         return value == null ? null : value.name();
     }
 

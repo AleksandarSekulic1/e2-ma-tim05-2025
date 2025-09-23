@@ -8,6 +8,15 @@
     <color name="secondary">#757575</color>
     <color name="accent">#FF9800</color>
     
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    
+    <!-- Background colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="border">#E0E0E0</color>
+    <color name="info">#2196F3</color>
+    
     <!-- Equipment colors -->
     <color name="gold">#FFD700</color>
     <color name="light_gray">#F5F5F5</color>
@@ -21,4 +30,14 @@
     <color name="health_text">#FFFFFF</color>
     <color name="player_stats">#4CAF50</color>
     <color name="battle_log">#E0E0E0</color>
+    
+    <!-- Chat colors -->
+    <color name="announcement_color">#FF9800</color>
+    
+    <!-- Consistent naming -->
+    <color name="primary_color">@color/primary</color>
+    <color name="text_color">@color/text_primary</color>
+    <color name="text_color_secondary">@color/text_secondary</color>
+    <color name="background_color">@color/background</color>
+    <color name="background_secondary">@color/light_gray</color>
 </resources>

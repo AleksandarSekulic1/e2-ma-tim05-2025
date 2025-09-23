@@ -445,6 +445,16 @@ public class TasksCalendarActivity extends AppCompatActivity implements TaskAdap
                 overridePendingTransition(0, 0);
                 finish();
                 return true;
+            } else if (itemId == R.id.navigation_friends) {
+                startActivity(new Intent(getApplicationContext(), ftn.ma.myapplication.activities.FriendsActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            } else if (itemId == R.id.navigation_alliance) {
+                startActivity(new Intent(getApplicationContext(), ftn.ma.myapplication.activities.AllianceActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
             }
             return false;
         });

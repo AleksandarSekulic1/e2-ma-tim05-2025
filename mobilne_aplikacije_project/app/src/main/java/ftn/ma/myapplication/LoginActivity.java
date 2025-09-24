@@ -73,6 +73,11 @@ public class LoginActivity extends AppCompatActivity {
             // Postavi trenutnog korisnika i ulogiraj ga
             ftn.ma.myapplication.data.local.UserStorage.setCurrentUser(this, email);
             SharedPreferencesManager.setUserLoggedIn(this, true);
+            
+            // Takođe čuvaj u SessionManager
+            ftn.ma.myapplication.utils.SessionManager sessionManager = new ftn.ma.myapplication.utils.SessionManager(this);
+            sessionManager.saveUser(user.getId(), user.getUsername());
+            
             navigateToMainApp();
         });
     }

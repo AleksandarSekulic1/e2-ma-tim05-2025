@@ -148,8 +148,15 @@ public class FriendsActivity extends AppCompatActivity {
         String currentUsername = sessionManager.getUsername();
         String targetUserId = String.valueOf(targetUser.getId());
         
-        // Debug poruka
-        Toast.makeText(this, "Current: " + currentUserId + ", Target: " + targetUserId, Toast.LENGTH_LONG).show();
+        // Debug informacije
+        Toast.makeText(this, 
+            "Debug Info:\n" +
+            "Current User ID: " + currentUserIdInt + "\n" +
+            "Current Username: " + currentUsername + "\n" +
+            "Target User ID: " + targetUser.getId() + "\n" +
+            "Target Username: " + targetUser.getUsername() + "\n" +
+            "Are same? " + targetUserId.equals(currentUserId), 
+            Toast.LENGTH_LONG).show();
         
         if (currentUserIdInt == -1) {
             Toast.makeText(this, "You need to be logged in", Toast.LENGTH_SHORT).show();

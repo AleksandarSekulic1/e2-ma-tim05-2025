@@ -28,6 +28,32 @@ public class UserStorage {
             }
         }
         
+        // Dodeli novi jedinstveni ID ako ga nema
+        if (user.getId() == 0) {
+            int maxId = 0;
+            for (User existingUser : userList) {
+                if (existingUser.getId() > maxId) {
+                    maxId = existingUser.getId();
+                }
+            }
+            // Koristim Reflection da postavim ID jer nema setter
+            try {
+                java.lang.reflect.Field idField = User.class.getDeclaredField("id");
+                idField.setAccessible(true);
+                idField.setInt(user, maxId + 1);
+            } catch (Exception e) {
+                // Fallback: koristi hash od email-a
+                int id = Math.abs(user.getEmail().hashCode() % 10000) + 1;
+                try {
+                    java.lang.reflect.Field idField = User.class.getDeclaredField("id");
+                    idField.setAccessible(true);
+                    idField.setInt(user, id);
+                } catch (Exception ex) {
+                    // Ignore
+                }
+            }
+        }
+        
         // Dodaj novog korisnika
         userList.add(user);
         saveUserList(context, userList);

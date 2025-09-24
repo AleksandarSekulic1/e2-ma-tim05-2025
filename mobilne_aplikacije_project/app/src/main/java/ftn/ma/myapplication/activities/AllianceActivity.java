@@ -66,8 +66,8 @@ public class AllianceActivity extends AppCompatActivity {
 
     private void initDatabase() {
         database = AppDatabase.getDatabase(this);
-        // allianceDao = database.allianceDao(); // Ne postoji u bazi
-        // allianceMemberDao = database.allianceMemberDao(); // Ne postoji u bazi
+        allianceDao = database.allianceDao();
+        allianceMemberDao = database.allianceMemberDao();
         userDao = database.userDao();
         sessionManager = new SessionManager(this);
     }
@@ -154,9 +154,71 @@ public class AllianceActivity extends AppCompatActivity {
     }
 
     private void loadAllianceStatus() {
-        // TODO: Učitati status iz baze (membership/alliance za trenutnog korisnika)
-        // Placeholder: korisnik nije u savezu
-        showNoAllianceState();
+        // Učitaj pravi alliance status iz baze podataka
+        int currentUserId = sessionManager.getUserId();
+        Toast.makeText(this, "Loading alliance for user ID: " + currentUserId, Toast.LENGTH_SHORT).show();
+        
+        if (currentUserId != -1) {
+            // Potraži membership za trenutnog korisnika u background thread-u
+            new Thread(() -> {
+                try {
+                    currentMembership = allianceMemberDao.getMembershipForUser((long) currentUserId);
+                    
+                    runOnUiThread(() -> {
+                        if (currentMembership != null) {
+                            Toast.makeText(this, "Found membership for alliance: " + currentMembership.getAllianceId(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this, "No membership found", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    
+                    if (currentMembership != null) {
+                        // Korisnik je u alliance-u, učitaj alliance
+                        currentAlliance = allianceDao.getById(currentMembership.getAllianceId());
+                        
+                        runOnUiThread(() -> {
+                            if (currentAlliance != null) {
+                                Toast.makeText(this, "Loaded alliance: " + currentAlliance.getName(), Toast.LENGTH_SHORT).show();
+                                showAllianceState();
+                            } else {
+                                Toast.makeText(this, "Alliance not found in database", Toast.LENGTH_SHORT).show();
+                                showNoAllianceState();
+                            }
+                        });
+                    } else {
+                        // Korisnik nije u alliance-u
+                        runOnUiThread(() -> showNoAllianceState());
+                    }
+                } catch (Exception e) {
+                    // Greška ili baza nije kreirana, fallback na test alliance
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Database error: " + e.getMessage() + ", using test alliance", Toast.LENGTH_LONG).show();
+                        createTestAlliance(currentUserId);
+                    });
+                }
+            }).start();
+        } else {
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            showNoAllianceState();
+        }
+    }
+    
+    private void createTestAlliance(int currentUserId) {
+        // Fallback: kreiraj test alliance ako baza nije dostupna
+        currentAlliance = new Alliance();
+        currentAlliance.setId(1L);
+        currentAlliance.setName("Test Alliance");
+        currentAlliance.setDescription("Demo alliance for testing chat functionality");
+        currentAlliance.setLeaderId((long) currentUserId);
+        currentAlliance.setMaxMembers(10);
+        currentAlliance.setStatus("ACTIVE");
+        
+        currentMembership = new AllianceMember();
+        currentMembership.setUserId((long) currentUserId);
+        currentMembership.setAllianceId(1L);
+        currentMembership.setRole("Leader");
+        
+        showAllianceState();
     }
 
     private void showNoAllianceState() {
@@ -181,7 +243,12 @@ public class AllianceActivity extends AppCompatActivity {
     }
 
     private void showAllianceState() {
-        if (currentAlliance == null) return;
+        if (currentAlliance == null) {
+            Toast.makeText(this, "Error: currentAlliance is null!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Toast.makeText(this, "Showing alliance state: " + currentAlliance.getName(), Toast.LENGTH_SHORT).show();
 
         allianceStatusText.setText("Alliance: " + currentAlliance.getName());
         allianceLevelText.setText("Level: 1"); // Privremeno fiksno
@@ -200,6 +267,8 @@ public class AllianceActivity extends AppCompatActivity {
         chatButton.setVisibility(View.VISIBLE);
         inviteButton.setVisibility(View.VISIBLE);
         leaveButton.setVisibility(View.VISIBLE);
+        
+        Toast.makeText(this, "Chat button should be visible now!", Toast.LENGTH_SHORT).show();
 
         // (Opcionalno) prikaz menadžment dugmadi za lidera — dodaćeš uslov kada budeš imao currentMembership/currentUser
         manageButton.setVisibility(View.GONE);

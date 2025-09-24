@@ -1,6 +1,7 @@
 package ftn.ma.myapplication.activities;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,10 +18,14 @@ import java.util.List;
 import ftn.ma.myapplication.adapters.FriendsAdapter;
 import ftn.ma.myapplication.data.dao.FriendDao;
 import ftn.ma.myapplication.data.dao.UserDao;
+import ftn.ma.myapplication.data.dao.AllianceDao;
+import ftn.ma.myapplication.data.dao.AllianceMemberDao;
 import ftn.ma.myapplication.data.local.AppDatabase;
 import ftn.ma.myapplication.data.local.NotificationStorage;
 import ftn.ma.myapplication.data.local.UserStorage;
 import ftn.ma.myapplication.data.model.User;
+import ftn.ma.myapplication.data.model.Alliance;
+import ftn.ma.myapplication.data.model.AllianceMember;
 import ftn.ma.myapplication.utils.SessionManager;
 
 public class FriendsActivity extends AppCompatActivity {
@@ -36,6 +41,8 @@ public class FriendsActivity extends AppCompatActivity {
     private AppDatabase database;
     private UserDao userDao;
     private FriendDao friendDao;
+    private AllianceDao allianceDao;
+    private AllianceMemberDao allianceMemberDao;
     private SessionManager sessionManager;
     private NotificationStorage notificationStorage;
 
@@ -54,6 +61,8 @@ public class FriendsActivity extends AppCompatActivity {
         database = AppDatabase.getDatabase(this);
         userDao = database.userDao();
         // friendDao = database.friendDao(); // Ne postoji u bazi
+        allianceDao = database.allianceDao();
+        allianceMemberDao = database.allianceMemberDao();
         sessionManager = new SessionManager(this);
         notificationStorage = new NotificationStorage(this);
     }
@@ -209,9 +218,45 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     private void createAlliance(String name, String description) {
-        // TODO: Kreirati savez u bazi
-        Toast.makeText(this, "Alliance '" + name + "' created!", Toast.LENGTH_SHORT).show();
-        // TODO: Navigacija na AllianceActivity po potrebi
+        int currentUserId = sessionManager.getUserId();
+        if (currentUserId == -1) {
+            Toast.makeText(this, "You must be logged in to create an alliance", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Kreiraj alliance u background thread-u
+        new Thread(() -> {
+            try {
+                // Proveri da li korisnik već ima alliance
+                AllianceMember existingMembership = allianceMemberDao.getMembershipForUser((long) currentUserId);
+                if (existingMembership != null) {
+                    runOnUiThread(() -> Toast.makeText(this, "You are already in an alliance!", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                
+                // Kreiraj novi alliance
+                Alliance newAlliance = new Alliance(name, description, (long) currentUserId);
+                long allianceId = allianceDao.insert(newAlliance);
+                
+                // Dodaj korisnika kao lidera alliance-a
+                AllianceMember leaderMembership = new AllianceMember();
+                leaderMembership.setAllianceId(allianceId);
+                leaderMembership.setUserId((long) currentUserId);
+                leaderMembership.setRole("Leader");
+                leaderMembership.setActive(true);
+                allianceMemberDao.insert(leaderMembership);
+                
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Alliance '" + name + "' created! You are the leader.", Toast.LENGTH_SHORT).show();
+                    // Navigacija na AllianceActivity da vidiš novi alliance
+                    Intent intent = new Intent(this, ftn.ma.myapplication.activities.AllianceActivity.class);
+                    startActivity(intent);
+                });
+                
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "Error creating alliance: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 
     // Helper methods for future use

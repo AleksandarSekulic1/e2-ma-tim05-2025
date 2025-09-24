@@ -15,6 +15,8 @@ import java.util.List;
 
 import ftn.ma.myapplication.adapters.ChatAdapter;
 import ftn.ma.myapplication.data.model.ChatMessage;
+import ftn.ma.myapplication.data.local.ChatStorage;
+import ftn.ma.myapplication.utils.SessionManager;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -23,10 +25,26 @@ public class ChatActivity extends AppCompatActivity {
     private Button sendButton;
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messagesList;
+    
+    private SessionManager sessionManager;
+    private long allianceId = 1L; // Default alliance ID
+    private String allianceName = "Alliance Chat";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        sessionManager = new SessionManager(this);
+        
+        // Dobij alliance info iz Intent-a
+        allianceId = getIntent().getLongExtra("allianceId", 1L);
+        allianceName = getIntent().getStringExtra("allianceName");
+        if (allianceName == null) allianceName = "Alliance Chat";
+        
+        // Postavi title
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(allianceName);
+        }
         
         createChatLayout();
         setupRecyclerView();
@@ -69,18 +87,44 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-        // TODO: Load messages from database
-        // Add sample message
-        ChatMessage sample = new ChatMessage(1L, 1L, "TestUser", "Welcome to alliance chat!");
-        messagesList.add(sample);
+        // Učitaj postojeće poruke iz storage-a
+        messagesList.addAll(ChatStorage.getMessagesForAlliance(this, allianceId));
+        
+        // Ako nema poruka, dodaj welcome poruku
+        if (messagesList.isEmpty()) {
+            ChatMessage welcomeMessage = ChatStorage.createMessage(
+                allianceId, 0L, "System", "Welcome to " + allianceName + " chat!"
+            );
+            ChatStorage.saveMessage(this, welcomeMessage);
+            messagesList.add(welcomeMessage);
+        }
+        
         chatAdapter.notifyDataSetChanged();
+        
+        // Skroluj na poslednju poruku
+        if (!messagesList.isEmpty()) {
+            messagesRecyclerView.scrollToPosition(messagesList.size() - 1);
+        }
     }
 
     private void sendMessage() {
         String messageText = messageEditText.getText().toString().trim();
         if (!messageText.isEmpty()) {
-            // TODO: Save to database
-            ChatMessage newMessage = new ChatMessage(1L, 1L, "You", messageText);
+            // Kreiraj novu poruku
+            long senderId = sessionManager.getUserId();
+            String senderUsername = sessionManager.getUsername();
+            if (senderUsername == null || senderUsername.isEmpty()) {
+                senderUsername = "User" + senderId;
+            }
+            
+            ChatMessage newMessage = ChatStorage.createMessage(
+                allianceId, senderId, senderUsername, messageText
+            );
+            
+            // Sačuvaj u storage
+            ChatStorage.saveMessage(this, newMessage);
+            
+            // Dodaj u listu i refreshuj UI
             messagesList.add(newMessage);
             chatAdapter.notifyDataSetChanged();
             messageEditText.setText("");

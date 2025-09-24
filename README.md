@@ -48,3 +48,6 @@ Student 2:Aleksandar Sekulic RA172/2021
 3. Upravljanje kategorijama 
 5. Borba sa bosom 
 7.3. Rešavanje specijalne misije saveza 
+
+
+APLIKACIJA SE POKRECE KROZ ANDRIOD STUDIO HVALAAA!!!!!!!!

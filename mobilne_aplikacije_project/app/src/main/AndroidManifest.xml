@@ -47,6 +47,10 @@
         <activity android:name=".ui.ShopActivity" />
         <activity android:name=".ui.EquipmentActivity" />
         <activity android:name=".ui.BossBattleActivity" />
+        <activity android:name=".activities.FriendsActivity" />
+        <activity android:name=".activities.AllianceActivity" />
+        <activity android:name=".activities.ChatActivity" />
+        <activity android:name=".activities.NotificationActivity" />
     </application>
 
 </manifest>

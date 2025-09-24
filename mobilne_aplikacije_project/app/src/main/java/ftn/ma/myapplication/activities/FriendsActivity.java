@@ -18,6 +18,8 @@ import ftn.ma.myapplication.adapters.FriendsAdapter;
 import ftn.ma.myapplication.data.dao.FriendDao;
 import ftn.ma.myapplication.data.dao.UserDao;
 import ftn.ma.myapplication.data.local.AppDatabase;
+import ftn.ma.myapplication.data.local.NotificationStorage;
+import ftn.ma.myapplication.data.local.UserStorage;
 import ftn.ma.myapplication.data.model.User;
 import ftn.ma.myapplication.utils.SessionManager;
 
@@ -35,6 +37,7 @@ public class FriendsActivity extends AppCompatActivity {
     private UserDao userDao;
     private FriendDao friendDao;
     private SessionManager sessionManager;
+    private NotificationStorage notificationStorage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +47,7 @@ public class FriendsActivity extends AppCompatActivity {
         createFriendsLayout();
         setupRecyclerView();
         loadFriends();
+        checkForPendingRequests(); // Automatski proverava zahteve
     }
 
     private void initDatabase() {
@@ -51,6 +55,7 @@ public class FriendsActivity extends AppCompatActivity {
         userDao = database.userDao();
         // friendDao = database.friendDao(); // Ne postoji u bazi
         sessionManager = new SessionManager(this);
+        notificationStorage = new NotificationStorage(this);
     }
 
     private void createFriendsLayout() {
@@ -113,19 +118,58 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     private void searchUsers(String username) {
-        // TODO: Pretraga korisnika u bazi
-        // Placeholder prikaz: nađeni korisnik sa mogućnošću dodavanja
-        new AlertDialog.Builder(this)
-                .setTitle("User Found: " + username)
-                .setMessage("Do you want to add " + username + " as a friend?")
-                .setPositiveButton("Add Friend", (dialog, which) -> addFriend(username))
-                .setNegativeButton("Cancel", null)
-                .show();
+        // Pretražujemo korisnika u UserStorage
+        List<User> allUsers = UserStorage.getUserList(this);
+        User foundUser = null;
+        
+        for (User user : allUsers) {
+            if (user.getUsername().equalsIgnoreCase(username)) {
+                foundUser = user;
+                break;
+            }
+        }
+        
+        if (foundUser != null) {
+            User finalFoundUser = foundUser;
+            new AlertDialog.Builder(this)
+                    .setTitle("User Found: " + username)
+                    .setMessage("Do you want to add " + username + " as a friend?")
+                    .setPositiveButton("Add Friend", (dialog, which) -> addFriend(finalFoundUser))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            Toast.makeText(this, "User not found: " + username, Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void addFriend(String username) {
-        // TODO: Dodati prijatelja u bazu
-        Toast.makeText(this, "Friend request sent to " + username, Toast.LENGTH_SHORT).show();
+    private void addFriend(User targetUser) {
+        int currentUserIdInt = sessionManager.getUserId();
+        String currentUserId = String.valueOf(currentUserIdInt);
+        String currentUsername = sessionManager.getUsername();
+        String targetUserId = String.valueOf(targetUser.getId());
+        
+        // Debug poruka
+        Toast.makeText(this, "Current: " + currentUserId + ", Target: " + targetUserId, Toast.LENGTH_LONG).show();
+        
+        if (currentUserIdInt == -1) {
+            Toast.makeText(this, "You need to be logged in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (targetUserId.equals(currentUserId)) {
+            Toast.makeText(this, "Cannot send friend request to yourself", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Kreiraj friend request
+        NotificationStorage.FriendRequest request = new NotificationStorage.FriendRequest(
+            currentUserId, currentUsername, targetUserId, targetUser.getUsername()
+        );
+        
+        // Sačuvaj request
+        notificationStorage.saveFriendRequest(request);
+        
+        Toast.makeText(this, "Friend request sent to " + targetUser.getUsername(), Toast.LENGTH_SHORT).show();
         loadFriends(); // refresh
     }
 
@@ -164,6 +208,38 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     // Helper methods for future use
+    
+    private void checkForPendingRequests() {
+        String currentUserId = String.valueOf(sessionManager.getUserId());
+        if (sessionManager.getUserId() == -1) return;
+        
+        List<NotificationStorage.FriendRequest> pendingRequests = 
+            notificationStorage.getPendingFriendRequestsForUser(currentUserId);
+            
+        if (!pendingRequests.isEmpty()) {
+            showFriendRequestDialog(pendingRequests.get(0)); // Prikaži prvi zahtev
+        }
+    }
+    
+    private void showFriendRequestDialog(NotificationStorage.FriendRequest request) {
+        new AlertDialog.Builder(this)
+            .setTitle("Friend Request")
+            .setMessage(request.fromUsername + " wants to be your friend!")
+            .setPositiveButton("Accept", (dialog, which) -> {
+                notificationStorage.updateFriendRequestStatus(request.fromUserId, request.toUserId, "accepted");
+                Toast.makeText(this, "Friend request accepted!", Toast.LENGTH_SHORT).show();
+                // Proverava za sledeći zahtev
+                checkForPendingRequests();
+            })
+            .setNegativeButton("Reject", (dialog, which) -> {
+                notificationStorage.updateFriendRequestStatus(request.fromUserId, request.toUserId, "rejected");
+                Toast.makeText(this, "Friend request rejected!", Toast.LENGTH_SHORT).show();
+                // Proverava za sledeći zahtev
+                checkForPendingRequests();
+            })
+            .setCancelable(false)
+            .show();
+    }
     
     public void onInviteToAlliance(User friend) {
         // TODO: Pozovi prijatelja u savez

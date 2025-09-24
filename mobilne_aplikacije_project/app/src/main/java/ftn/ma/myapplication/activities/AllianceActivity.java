@@ -229,11 +229,8 @@ public class AllianceActivity extends AppCompatActivity {
 
     private void showAllianceState() {
         if (currentAlliance == null) {
-            Toast.makeText(this, "Error: currentAlliance is null!", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        Toast.makeText(this, "Showing alliance state: " + currentAlliance.getName(), Toast.LENGTH_SHORT).show();
 
         allianceStatusText.setText("Alliance: " + currentAlliance.getName());
         allianceLevelText.setText("Level: 1"); // Privremeno fiksno
@@ -252,8 +249,6 @@ public class AllianceActivity extends AppCompatActivity {
         chatButton.setVisibility(View.VISIBLE);
         inviteButton.setVisibility(View.VISIBLE);
         leaveButton.setVisibility(View.VISIBLE);
-        
-        Toast.makeText(this, "Chat button should be visible now!", Toast.LENGTH_SHORT).show();
 
         // (Opcionalno) prikaz menadžment dugmadi za lidera — dodaćeš uslov kada budeš imao currentMembership/currentUser
         manageButton.setVisibility(View.GONE);

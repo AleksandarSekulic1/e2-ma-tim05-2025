@@ -313,6 +313,64 @@
 
             </LinearLayout>
 
+            <!-- Social funkcionalnosti -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:background="@android:color/darker_gray">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🤝 SOCIAL FUNKCIONALNOSTI"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:layout_gravity="center_horizontal"
+                    android:textColor="@android:color/white"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/buttonFriends"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="👥 PRIJATELJI"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_green_dark" />
+
+                    <Button
+                        android:id="@+id/buttonAlliance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="⚔️ SAVEZ"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_orange_dark" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="💡 Pronađi prijatelje, kreiraj savez i osvajaj zajedno!"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:alpha="0.8"
+                    android:layout_gravity="center_horizontal" />
+
+            </LinearLayout>
+
             <Button
                 android:id="@+id/buttonResetApp"
                 android:layout_width="match_parent"

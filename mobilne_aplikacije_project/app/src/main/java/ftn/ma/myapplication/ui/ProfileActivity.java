@@ -43,6 +43,8 @@ import ftn.ma.myapplication.ui.categories.CategoriesActivity;
 import ftn.ma.myapplication.ui.game.AllianceMissionActivity;
 import ftn.ma.myapplication.ui.tasks.TasksActivity;
 import ftn.ma.myapplication.util.SharedPreferencesManager;
+import ftn.ma.myapplication.activities.FriendsActivity;
+import ftn.ma.myapplication.activities.AllianceActivity;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -51,6 +53,7 @@ public class ProfileActivity extends AppCompatActivity {
     private ImageView imageViewAvatar, imageViewQr;
     private Button buttonLogout, buttonAddXp, buttonResetApp, buttonAllianceMission, buttonSimulateDate, buttonResetDate, buttonChangePassword;
     private Button buttonAdminAddXP, buttonShop, buttonEquipment, buttonBossBattle;
+    private Button buttonFriends, buttonAlliance;
     private EditText editTextAdminXP;
     private ImageView imageViewBadge;
 
@@ -98,6 +101,10 @@ public class ProfileActivity extends AppCompatActivity {
         buttonShop = findViewById(R.id.buttonShop);
         buttonEquipment = findViewById(R.id.buttonEquipment);
         buttonBossBattle = findViewById(R.id.buttonBossBattle);
+        
+        // Social funkcionalnosti
+        buttonFriends = findViewById(R.id.buttonFriends);
+        buttonAlliance = findViewById(R.id.buttonAlliance);
 
         setupBottomNavigation();
 
@@ -119,6 +126,16 @@ public class ProfileActivity extends AppCompatActivity {
         buttonShop.setOnClickListener(v -> openShop());
         buttonEquipment.setOnClickListener(v -> openEquipment());
         buttonBossBattle.setOnClickListener(v -> openBossBattle());
+        
+        // Social funkcionalnosti listener-i
+        buttonFriends.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FriendsActivity.class);
+            startActivity(intent);
+        });
+        buttonAlliance.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AllianceActivity.class);
+            startActivity(intent);
+        });
     }
 
     /**

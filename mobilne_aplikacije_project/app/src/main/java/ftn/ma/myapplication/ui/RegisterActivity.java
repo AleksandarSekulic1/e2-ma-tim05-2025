@@ -79,6 +79,13 @@ public class RegisterActivity extends AppCompatActivity {
             Toast.makeText(this, "Neispravan email!", Toast.LENGTH_SHORT).show();
             return;
         }
+        
+        // Proveri da li korisnik već postoji
+        if (ftn.ma.myapplication.data.local.UserStorage.findUserByEmail(this, email) != null) {
+            Toast.makeText(this, "Korisnik sa ovim email-om već postoji!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         if (!password.equals(passwordRepeat)) {
             Toast.makeText(this, "Lozinke se ne poklapaju!", Toast.LENGTH_SHORT).show();
             return;
@@ -95,7 +102,7 @@ public class RegisterActivity extends AppCompatActivity {
         ftn.ma.myapplication.data.model.User user = new ftn.ma.myapplication.data.model.User(
                 email, username, passwordHash, selectedAvatarIndex, true, expiry
         );
-        // Sačuvaj korisnika lokalno
+        // Sačuvaj korisnika u listu
         ftn.ma.myapplication.data.local.UserStorage.saveUser(this, user);
 
         // Registracija je uspešna i nalog je odmah aktivan

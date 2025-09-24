@@ -47,15 +47,13 @@ public class LoginActivity extends AppCompatActivity {
             String email = editTextEmail.getText().toString().trim();
             String password = editTextPassword.getText().toString();
 
-            ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.getUser(this);
+            // Pronađi korisnika po email-u iz liste korisnika
+            ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.findUserByEmail(this, email);
             if (user == null) {
                 Toast.makeText(this, "Nalog ne postoji. Registrujte se.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!user.getEmail().equals(email)) {
-                Toast.makeText(this, "Pogrešan email ili lozinka.", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            
             String passwordHash = Integer.toString(password.hashCode());
             if (!user.getPasswordHash().equals(passwordHash)) {
                 Toast.makeText(this, "Pogrešan email ili lozinka.", Toast.LENGTH_SHORT).show();
@@ -65,12 +63,15 @@ public class LoginActivity extends AppCompatActivity {
                 long now = System.currentTimeMillis();
                 if (now > user.getActivationExpiry()) {
                     Toast.makeText(this, "Aktivacioni link je istekao. Registrujte se ponovo.", Toast.LENGTH_LONG).show();
-                    ftn.ma.myapplication.data.local.UserStorage.clearUser(this);
+                    // Ne brišemo korisnika, samo mu resetujemo aktivaciju
                 } else {
                     Toast.makeText(this, "Nalog nije aktiviran. Proverite email za aktivacioni link.", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
+            
+            // Postavi trenutnog korisnika i ulogiraj ga
+            ftn.ma.myapplication.data.local.UserStorage.setCurrentUser(this, email);
             SharedPreferencesManager.setUserLoggedIn(this, true);
             navigateToMainApp();
         });

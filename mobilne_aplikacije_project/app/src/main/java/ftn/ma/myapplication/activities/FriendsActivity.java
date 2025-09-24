@@ -21,7 +21,7 @@ import ftn.ma.myapplication.data.local.AppDatabase;
 import ftn.ma.myapplication.data.model.User;
 import ftn.ma.myapplication.utils.SessionManager;
 
-public class FriendsActivity extends AppCompatActivity implements FriendsAdapter.OnFriendClickListener {
+public class FriendsActivity extends AppCompatActivity {
 
     // UI
     private RecyclerView friendsRecyclerView;
@@ -49,7 +49,7 @@ public class FriendsActivity extends AppCompatActivity implements FriendsAdapter
     private void initDatabase() {
         database = AppDatabase.getDatabase(this);
         userDao = database.userDao();
-        friendDao = database.friendDao();
+        // friendDao = database.friendDao(); // Ne postoji u bazi
         sessionManager = new SessionManager(this);
     }
 
@@ -82,7 +82,7 @@ public class FriendsActivity extends AppCompatActivity implements FriendsAdapter
     }
 
     private void setupRecyclerView() {
-        friendsAdapter = new FriendsAdapter(friendsList, this);
+        friendsAdapter = new FriendsAdapter(friendsList);
         friendsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         friendsRecyclerView.setAdapter(friendsAdapter);
     }
@@ -163,15 +163,13 @@ public class FriendsActivity extends AppCompatActivity implements FriendsAdapter
         // TODO: Navigacija na AllianceActivity po potrebi
     }
 
-    // FriendsAdapter.OnFriendClickListener
-
-    @Override
+    // Helper methods for future use
+    
     public void onInviteToAlliance(User friend) {
         // TODO: Pozovi prijatelja u savez
         Toast.makeText(this, "Invite sent to " + friend.getUsername(), Toast.LENGTH_SHORT).show();
     }
 
-    @Override
     public void onRemoveFriend(User friend) {
         // TODO: Ukloni prijatelja iz liste/baze
         Toast.makeText(this, "Removed friend: " + friend.getUsername(), Toast.LENGTH_SHORT).show();

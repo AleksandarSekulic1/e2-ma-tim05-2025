@@ -66,8 +66,8 @@ public class AllianceActivity extends AppCompatActivity {
 
     private void initDatabase() {
         database = AppDatabase.getDatabase(this);
-        allianceDao = database.allianceDao();
-        allianceMemberDao = database.allianceMemberDao();
+        // allianceDao = database.allianceDao(); // Ne postoji u bazi
+        // allianceMemberDao = database.allianceMemberDao(); // Ne postoji u bazi
         userDao = database.userDao();
         sessionManager = new SessionManager(this);
     }
@@ -184,8 +184,8 @@ public class AllianceActivity extends AppCompatActivity {
         if (currentAlliance == null) return;
 
         allianceStatusText.setText("Alliance: " + currentAlliance.getName());
-        allianceLevelText.setText("Level: " + currentAlliance.getLevel());
-        allianceMembersText.setText("Members: " + currentAlliance.getCurrentMemberCount() + "/" + currentAlliance.getMaxMembers());
+        allianceLevelText.setText("Level: 1"); // Privremeno fiksno
+        allianceMembersText.setText("Members: 1/" + currentAlliance.getMaxMembers());
 
         allianceNameText.setText(currentAlliance.getName());
         allianceNameText.setVisibility(View.VISIBLE);
@@ -271,7 +271,7 @@ public class AllianceActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ChatActivity.class);
         if (currentAlliance != null) {
             // uskladi getter sa svojim modelom (getAllianceId ili getId)
-            intent.putExtra("allianceId", currentAlliance.getAllianceId());
+            intent.putExtra("allianceId", currentAlliance.getId());
             intent.putExtra("allianceName", currentAlliance.getName());
         }
         startActivity(intent);

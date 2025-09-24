@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header -->
+        <TextView
+            android:id="@+id/activeEquipmentHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Oprema korisnika"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:padding="12dp"
+            android:background="@drawable/rounded_background"
+            android:layout_marginBottom="16dp"
+            android:gravity="center" />
+
+        <!-- Napici sekcija -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🧪 NAPICI"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:padding="8dp"
+            android:background="@color/light_gray"
+            android:layout_marginBottom="8dp" />
+
+        <ListView
+            android:id="@+id/potionsListView"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginBottom="16dp"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="4dp" />
+
+        <!-- Odeća sekcija -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="👕 ODEĆA"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:padding="8dp"
+            android:background="@color/light_gray"
+            android:layout_marginBottom="8dp" />
+
+        <ListView
+            android:id="@+id/clothingListView"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginBottom="16dp"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="4dp" />
+
+        <!-- Oružje sekcija -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚔️ ORUŽJE"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:padding="8dp"
+            android:background="@color/light_gray"
+            android:layout_marginBottom="8dp" />
+
+        <ListView
+            android:id="@+id/weaponsListView"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginBottom="16dp"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="4dp" />
+
+        <!-- Dugme za unapređenje oružja -->
+        <Button
+            android:id="@+id/upgradeWeaponsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="UNAPREDI ORUŽJE"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_primary"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Dugme za brisanje sve opreme -->
+        <Button
+            android:id="@+id/deleteAllEquipmentButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🗑️ OBRIŠI SVU OPREMU"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_danger"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Dugme za dodavanje novčića -->
+        <Button
+            android:id="@+id/addCoinsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💰 DODAJ 1000 NOVČIĆA"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_success"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Info o trajanju opreme -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ℹ️ Napomena:\n• Napici - jednokratni se troše u borbi, trajni ostaju aktivni\n• Odeća - traje 2 borbe, bonusi se sabiru\n• Oružje - trajno aktivno, može se unaprediti"
+            android:textSize="12sp"
+            android:textColor="@color/secondary"
+            android:padding="12dp"
+            android:background="@color/info_background"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>

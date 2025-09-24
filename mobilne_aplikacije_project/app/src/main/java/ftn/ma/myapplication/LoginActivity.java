@@ -16,10 +16,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText editTextEmail, editTextPassword;
     private Button buttonLogin;
+    private android.widget.TextView textViewRegisterLink;
 
-    // Hardkodovani podaci za prijavu
-    private final String HARDCODED_EMAIL = "student";
-    private final String HARDCODED_PASSWORD = "student";
+    // Više se ne koriste hardkodovani podaci
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -37,17 +36,49 @@ public class LoginActivity extends AppCompatActivity {
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPassword = findViewById(R.id.editTextPassword);
         buttonLogin = findViewById(R.id.buttonLogin);
+        textViewRegisterLink = findViewById(R.id.textViewRegisterLink);
+
+        textViewRegisterLink.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ftn.ma.myapplication.ui.RegisterActivity.class);
+            startActivity(intent);
+        });
 
         buttonLogin.setOnClickListener(v -> {
-            String email = editTextEmail.getText().toString();
+            String email = editTextEmail.getText().toString().trim();
             String password = editTextPassword.getText().toString();
 
-            if (email.equals(HARDCODED_EMAIL) && password.equals(HARDCODED_PASSWORD)) {
-                SharedPreferencesManager.setUserLoggedIn(this, true);
-                navigateToMainApp();
-            } else {
-                Toast.makeText(this, "Pogrešan email ili lozinka.", Toast.LENGTH_SHORT).show();
+            // Pronađi korisnika po email-u iz liste korisnika
+            ftn.ma.myapplication.data.model.User user = ftn.ma.myapplication.data.local.UserStorage.findUserByEmail(this, email);
+            if (user == null) {
+                Toast.makeText(this, "Nalog ne postoji. Registrujte se.", Toast.LENGTH_SHORT).show();
+                return;
             }
+            
+            String passwordHash = Integer.toString(password.hashCode());
+            if (!user.getPasswordHash().equals(passwordHash)) {
+                Toast.makeText(this, "Pogrešan email ili lozinka.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!user.isActive()) {
+                long now = System.currentTimeMillis();
+                if (now > user.getActivationExpiry()) {
+                    Toast.makeText(this, "Aktivacioni link je istekao. Registrujte se ponovo.", Toast.LENGTH_LONG).show();
+                    // Ne brišemo korisnika, samo mu resetujemo aktivaciju
+                } else {
+                    Toast.makeText(this, "Nalog nije aktiviran. Proverite email za aktivacioni link.", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+            
+            // Postavi trenutnog korisnika i ulogiraj ga
+            ftn.ma.myapplication.data.local.UserStorage.setCurrentUser(this, email);
+            SharedPreferencesManager.setUserLoggedIn(this, true);
+            
+            // Takođe čuvaj u SessionManager
+            ftn.ma.myapplication.utils.SessionManager sessionManager = new ftn.ma.myapplication.utils.SessionManager(this);
+            sessionManager.saveUser(user.getId(), user.getUsername());
+            
+            navigateToMainApp();
         });
     }
 

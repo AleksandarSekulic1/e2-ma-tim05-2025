@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/battle_background">
+
+    <!-- Boss Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/rounded_background"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/bossNameText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Boss Nivo 1"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/boss_text"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/bossLevelText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nivo: 1"
+            android:textSize="16sp"
+            android:textColor="@color/secondary"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <ProgressBar
+            android:id="@+id/bossHealthBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:progress="100"
+            android:progressTint="@color/boss_health"
+            android:progressBackgroundTint="@color/health_background" />
+
+        <TextView
+            android:id="@+id/bossHealthText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="300 / 300"
+            android:textSize="14sp"
+            android:textColor="@color/health_text"
+            android:gravity="center"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
+    <!-- Player Stats -->
+    <TextView
+        android:id="@+id/playerStatsText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Snaga: 0 PP\nŠansa napada: 70%\nDodatni napad: 0%"
+        android:textSize="14sp"
+        android:textColor="@color/player_stats"
+        android:background="@drawable/rounded_background"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Battle Log -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/rounded_background"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/battleLogText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pripremi se za borbu..."
+            android:textSize="13sp"
+            android:textColor="@color/battle_log"
+            android:fontFamily="monospace" />
+
+    </ScrollView>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/attackButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚔️ NAPADNI"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_attack"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/useEquipmentButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🛡️ OPREMA"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_secondary"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

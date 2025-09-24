@@ -41,6 +41,16 @@
         <activity android:name=".ui.calendar.TasksCalendarActivity" />
         <activity android:name=".ui.tasks.TaskDetailActivity" />
         <activity android:name=".ui.ProfileActivity" />
+        <activity android:name=".ui.RegisterActivity" />
+        <activity android:name=".ui.StatisticsActivity" />
+        <activity android:name=".ui.ActivateAccountActivity" />
+        <activity android:name=".ui.ShopActivity" />
+        <activity android:name=".ui.EquipmentActivity" />
+        <activity android:name=".ui.BossBattleActivity" />
+        <activity android:name=".activities.FriendsActivity" />
+        <activity android:name=".activities.AllianceActivity" />
+        <activity android:name=".activities.ChatActivity" />
+        <activity android:name=".activities.NotificationActivity" />
     </application>
 
 </manifest>

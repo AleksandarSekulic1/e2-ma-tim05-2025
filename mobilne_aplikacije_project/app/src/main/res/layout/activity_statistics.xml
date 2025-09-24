@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Statistika korisnika"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Ovde će biti prikazani grafikoni i statistika -->
+        <TextView
+            android:id="@+id/textViewActiveDays"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aktivnih dana: 0"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp" />
+
+        <com.github.mikephil.charting.charts.PieChart
+            android:id="@+id/pieChartTasks"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp" />
+
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/barChartCategories"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp" />
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/lineChartDifficulty"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp" />
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/lineChartXp7days"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/textViewStreak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Najduži niz: 0 dana"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/textViewSpecialMissions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Specijalne misije: 0/0"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -16,7 +16,8 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="24dp"
+            android:paddingBottom="80dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -25,21 +26,70 @@
                 android:textSize="28sp"
                 android:textStyle="bold" />
 
+
+            <ImageView
+                android:id="@+id/imageViewAvatar"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_marginTop="24dp"
+                android:contentDescription="Avatar" />
+
             <TextView
                 android:id="@+id/textViewUsername"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="8dp"
                 android:textSize="20sp"
                 tools:text="Korisničko ime: student" />
+
+            <TextView
+                android:id="@+id/textViewLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Nivo: 1" />
+
+            <TextView
+                android:id="@+id/textViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Titula: Početnik" />
+
+            <TextView
+                android:id="@+id/textViewPowerPoints"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Snaga: 0 PP" />
 
             <TextView
                 android:id="@+id/textViewUserXp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="XP: 0" />
+
+            <TextView
+                android:id="@+id/textViewCoins"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Novčići: 0" />
+
+            <TextView
+                android:id="@+id/textViewEquipment"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                tools:text="Oprema: Osnovna oprema" />
+
+            <ImageView
+                android:id="@+id/imageViewQr"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
                 android:layout_marginTop="8dp"
-                android:textSize="20sp"
-                tools:text="Ukupno XP: 1250" />
+                android:contentDescription="QR kod" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -71,11 +121,25 @@
                 android:text="Specijalna Misija Saveza" />
 
             <Button
+                android:id="@+id/buttonChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Promeni lozinku" />
+
+            <Button
                 android:id="@+id/buttonLogout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
                 android:text="Odjavi se" />
+
+            <Button
+                android:id="@+id/buttonStatistics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Statistika i grafikoni" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -126,7 +190,186 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Dodaj 100 XP" />
+                android:text="🎲 Simuliraj XP (10-110)" />
+
+            <!-- Admin XP Panel -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:background="@android:color/darker_gray"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ ADMIN XP PANEL ⚡"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:layout_gravity="center"
+                    android:textSize="16sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/editTextAdminXP"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Unesite XP (npr. 500)"
+                        android:inputType="number"
+                        android:textColor="@android:color/white"
+                        android:textColorHint="@android:color/darker_gray"
+                        android:backgroundTint="@android:color/white" />
+
+                    <Button
+                        android:id="@+id/buttonAdminAddXP"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="➕ Dodeli XP"
+                        android:backgroundTint="@android:color/holo_green_dark" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="💡 Tip: Za brže levelovanje koristite veće brojeve (npr. 1000+)"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:alpha="0.8" />
+
+            </LinearLayout>
+
+            <!-- Equipment sekcija -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/background_rounded_dark"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚔️ OPREMA I PRODAVNICA"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/buttonShop"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="🛒 PRODAVNICA"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_blue_dark" />
+
+                    <Button
+                        android:id="@+id/buttonEquipment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="🎒 OPREMA"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_purple" />
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/buttonBossBattle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="⚔️ BORBA SA BOSOM"
+                    android:textStyle="bold"
+                    android:backgroundTint="@android:color/holo_red_dark" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="💡 Kupite opremu u prodavnici, aktivirajte je i koristite u borbi!"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:alpha="0.8" />
+
+            </LinearLayout>
+
+            <!-- Social funkcionalnosti -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:background="@android:color/darker_gray">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🤝 SOCIAL FUNKCIONALNOSTI"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:layout_gravity="center_horizontal"
+                    android:textColor="@android:color/white"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/buttonFriends"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="👥 PRIJATELJI"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_green_dark" />
+
+                    <Button
+                        android:id="@+id/buttonAlliance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="⚔️ SAVEZ"
+                        android:textStyle="bold"
+                        android:backgroundTint="@android:color/holo_orange_dark" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="💡 Pronađi prijatelje, kreiraj savez i osvajaj zajedno!"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:alpha="0.8"
+                    android:layout_gravity="center_horizontal" />
+
+            </LinearLayout>
 
             <Button
                 android:id="@+id/buttonResetApp"

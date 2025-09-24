@@ -156,7 +156,6 @@ public class AllianceActivity extends AppCompatActivity {
     private void loadAllianceStatus() {
         // Učitaj pravi alliance status iz baze podataka
         int currentUserId = sessionManager.getUserId();
-        Toast.makeText(this, "Loading alliance for user ID: " + currentUserId, Toast.LENGTH_SHORT).show();
         
         if (currentUserId != -1) {
             // Potraži membership za trenutnog korisnika u background thread-u
@@ -164,24 +163,14 @@ public class AllianceActivity extends AppCompatActivity {
                 try {
                     currentMembership = allianceMemberDao.getMembershipForUser((long) currentUserId);
                     
-                    runOnUiThread(() -> {
-                        if (currentMembership != null) {
-                            Toast.makeText(this, "Found membership for alliance: " + currentMembership.getAllianceId(), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(this, "No membership found", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    
                     if (currentMembership != null) {
                         // Korisnik je u alliance-u, učitaj alliance
                         currentAlliance = allianceDao.getById(currentMembership.getAllianceId());
                         
                         runOnUiThread(() -> {
                             if (currentAlliance != null) {
-                                Toast.makeText(this, "Loaded alliance: " + currentAlliance.getName(), Toast.LENGTH_SHORT).show();
                                 showAllianceState();
                             } else {
-                                Toast.makeText(this, "Alliance not found in database", Toast.LENGTH_SHORT).show();
                                 showNoAllianceState();
                             }
                         });
@@ -191,14 +180,10 @@ public class AllianceActivity extends AppCompatActivity {
                     }
                 } catch (Exception e) {
                     // Greška ili baza nije kreirana, fallback na test alliance
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Database error: " + e.getMessage() + ", using test alliance", Toast.LENGTH_LONG).show();
-                        createTestAlliance(currentUserId);
-                    });
+                    runOnUiThread(() -> createTestAlliance(currentUserId));
                 }
             }).start();
         } else {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             showNoAllianceState();
         }
     }
@@ -330,10 +315,49 @@ public class AllianceActivity extends AppCompatActivity {
     }
 
     private void joinAlliance(String name) {
-        // TODO: Pridruži se savezu iz baze
-        Toast.makeText(this, "Joined alliance: " + name, Toast.LENGTH_SHORT).show();
-        allianceStatusText.setText("Alliance Status: Member of " + name);
-        // Po želji, postavi currentAlliance i pozovi showAllianceState()
+        int currentUserId = sessionManager.getUserId();
+        if (currentUserId == -1) {
+            Toast.makeText(this, "You must be logged in to join an alliance", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Pridruži se alliance-u u background thread-u
+        new Thread(() -> {
+            try {
+                // Proverti da li korisnik već ima alliance
+                AllianceMember existingMembership = allianceMemberDao.getMembershipForUser((long) currentUserId);
+                if (existingMembership != null) {
+                    runOnUiThread(() -> Toast.makeText(this, "You are already in an alliance!", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                
+                // Pronađi alliance po imenu
+                Alliance targetAlliance = allianceDao.getByName(name);
+                if (targetAlliance == null) {
+                    runOnUiThread(() -> Toast.makeText(this, "Alliance '" + name + "' not found!", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                
+                // Kreiraj membership
+                AllianceMember newMembership = new AllianceMember();
+                newMembership.setAllianceId(targetAlliance.getId());
+                newMembership.setUserId((long) currentUserId);
+                newMembership.setRole("Member");
+                newMembership.setActive(true);
+                allianceMemberDao.insert(newMembership);
+                
+                // Ažuriraj UI
+                runOnUiThread(() -> {
+                    currentAlliance = targetAlliance;
+                    currentMembership = newMembership;
+                    Toast.makeText(this, "Successfully joined '" + name + "' alliance!", Toast.LENGTH_SHORT).show();
+                    showAllianceState();
+                });
+                
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "Error joining alliance: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 
     private void openAllianceChat() {
